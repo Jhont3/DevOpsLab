@@ -1,0 +1,171 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches: [ main, testing ]
+    paths:
+      - 'config/clients.json'
+      - 'infrastructure/**'
+  workflow_dispatch:
+    inputs:
+      client_name:
+        description: 'Client name to deploy'
+        required: true
+        type: string
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        type: choice
+        options:
+          - testing
+          - main
+          - both
+      force_deploy:
+        description: 'Force deployment even if no changes detected'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      config-changed: ${{ steps.changes.outputs.config }}
+      infrastructure-changed: ${{ steps.changes.outputs.infrastructure }}
+      clients-to-deploy: ${{ steps.get-clients.outputs.clients }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            config:
+              - 'config/clients.json'
+            infrastructure:
+              - 'infrastructure/**'
+      
+      - name: Get clients to deploy
+        id: get-clients
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Manual trigger - deploy specific client
+            client_name="${{ github.event.inputs.client_name }}"
+            environment="${{ github.event.inputs.environment }}"
+            
+            if [ "$environment" = "both" ]; then
+              clients_json=$(echo "[$client_name]" | jq -r .)
+              echo "clients=$clients_json" >> $GITHUB_OUTPUT
+            else
+              clients_json=$(echo "[$client_name]" | jq -r .)
+              echo "clients=$clients_json" >> $GITHUB_OUTPUT
+            fi
+          else
+            # Automatic trigger - deploy all clients
+            clients_json=$(cat config/clients.json | jq -r '.clients | keys')
+            echo "clients=$clients_json" >> $GITHUB_OUTPUT
+          fi
+
+  deploy-infrastructure:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.config-changed == 'true' || needs.detect-changes.outputs.infrastructure-changed == 'true' || github.event.inputs.force_deploy == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        client: ${{ fromJson(needs.detect-changes.outputs.clients-to-deploy) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install PowerShell
+        run: |
+          # Install PowerShell
+          wget -q https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb
+          sudo dpkg -i packages-microsoft-prod.deb
+          sudo apt-get update
+          sudo apt-get install -y powershell
+
+      - name: Azure Login via OIDC
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install Azure CLI Bicep extension
+        run: az bicep install
+
+      - name: Deploy testing environment
+        if: github.ref == 'refs/heads/testing' || github.event.inputs.environment == 'testing' || github.event.inputs.environment == 'both'
+        run: |
+          pwsh -File scripts/Deploy-Environment.ps1 \
+            -ClientName "${{ matrix.client }}" \
+            -Environment "testing" \
+            -SubscriptionId "${{ env.AZURE_SUBSCRIPTION_ID }}"
+
+      - name: Deploy production environment
+        if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'main' || github.event.inputs.environment == 'both'
+        run: |
+          pwsh -File scripts/Deploy-Environment.ps1 \
+            -ClientName "${{ matrix.client }}" \
+            -Environment "main" \
+            -SubscriptionId "${{ env.AZURE_SUBSCRIPTION_ID }}"
+
+      - name: Verify deployment
+        run: |
+          echo "Verifying deployment for client: ${{ matrix.client }}"
+          
+          # Check if testing environment was deployed
+          if [ "${{ github.ref }}" = "refs/heads/testing" ] || [ "${{ github.event.inputs.environment }}" = "testing" ] || [ "${{ github.event.inputs.environment }}" = "both" ]; then
+            echo "Checking testing environment..."
+            
+            # Get resource group from config
+            rg_name=$(cat config/clients.json | jq -r ".clients.${{ matrix.client }}.environments.testing.resourceGroup")
+            
+            # Check if resource group exists
+            if az group show --name "$rg_name" --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}" > /dev/null 2>&1; then
+              echo "✅ Testing resource group $rg_name exists"
+            else
+              echo "❌ Testing resource group $rg_name does not exist"
+              exit 1
+            fi
+          fi
+          
+          # Check if production environment was deployed
+          if [ "${{ github.ref }}" = "refs/heads/main" ] || [ "${{ github.event.inputs.environment }}" = "main" ] || [ "${{ github.event.inputs.environment }}" = "both" ]; then
+            echo "Checking production environment..."
+            
+            # Get resource group from config
+            rg_name=$(cat config/clients.json | jq -r ".clients.${{ matrix.client }}.environments.main.resourceGroup")
+            
+            # Check if resource group exists
+            if az group show --name "$rg_name" --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}" > /dev/null 2>&1; then
+              echo "✅ Production resource group $rg_name exists"
+            else
+              echo "❌ Production resource group $rg_name does not exist"
+              exit 1
+            fi
+          fi
+
+  notify-completion:
+    needs: [detect-changes, deploy-infrastructure]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify deployment status
+        run: |
+          if [ "${{ needs.deploy-infrastructure.result }}" = "success" ]; then
+            echo "🎉 Infrastructure deployment completed successfully!"
+          elif [ "${{ needs.deploy-infrastructure.result }}" = "failure" ]; then
+            echo "❌ Infrastructure deployment failed!"
+            exit 1
+          elif [ "${{ needs.deploy-infrastructure.result }}" = "skipped" ]; then
+            echo "⏭️  No infrastructure changes detected, skipping deployment"
+          fi 

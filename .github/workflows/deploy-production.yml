@@ -1,0 +1,262 @@
+name: Deploy to Production Environments
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+    types: [ closed ]
+
+env:
+  AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      functions-changed: ${{ steps.changes.outputs.functions }}
+      users-function: ${{ steps.changes.outputs.users-function }}
+      animals-function: ${{ steps.changes.outputs.animals-function }}
+      plugins-function: ${{ steps.changes.outputs.plugins-function }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            functions:
+              - 'UsersFunction/**'
+              - 'AnimalsFunction/**'
+              - 'PlugginsRandomFunctionOne/**'
+            users-function:
+              - 'UsersFunction/**'
+            animals-function:
+              - 'AnimalsFunction/**'
+            plugins-function:
+              - 'PlugginsRandomFunctionOne/**'
+
+  build-and-deploy:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.functions-changed == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        function-type: [
+          { name: 'users', path: 'UsersFunction', changed: '${{ needs.detect-changes.outputs.users-function }}' },
+          { name: 'animals', path: 'AnimalsFunction', changed: '${{ needs.detect-changes.outputs.animals-function }}' },
+          { name: 'plugins', path: 'PlugginsRandomFunctionOne', changed: '${{ needs.detect-changes.outputs.plugins-function }}' }
+        ]
+    steps:
+      - name: Checkout code
+        if: matrix.function-type.changed == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        if: matrix.function-type.changed == 'true'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '6.0.x'
+
+      - name: Azure Login via OIDC
+        if: matrix.function-type.changed == 'true'
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install Azure CLI Bicep extension
+        if: matrix.function-type.changed == 'true'
+        run: az bicep install
+
+      - name: Build Function App
+        if: matrix.function-type.changed == 'true'
+        run: |
+          cd ${{ matrix.function-type.path }}/${{ matrix.function-type.path }}
+          dotnet build --configuration Release
+          dotnet publish --configuration Release --output ./publish
+
+      - name: Create deployment package
+        if: matrix.function-type.changed == 'true'
+        run: |
+          cd ${{ matrix.function-type.path }}/${{ matrix.function-type.path }}/publish
+          zip -r ../../../deploy-package-${{ matrix.function-type.name }}.zip .
+
+      - name: Get production environments
+        if: matrix.function-type.changed == 'true'
+        id: get-environments
+        run: |
+          # Read configuration and extract production environments
+          environments=$(cat config/clients.json | jq -r '
+            .clients | to_entries[] | 
+            select(.value.environments.main.functions.core[] == "functionUsuarios" or 
+                   .value.environments.main.functions.core[] == "functionAnimales" or
+                   .value.environments.main.functions.plugins[] == "functionRandomUsuario") |
+            .key
+          ' | jq -R -s -c 'split("\n")[:-1]')
+          echo "environments=$environments" >> $GITHUB_OUTPUT
+
+      - name: Deploy to production environments
+        if: matrix.function-type.changed == 'true'
+        run: |
+          environments='${{ steps.get-environments.outputs.environments }}'
+          
+          for client in $(echo $environments | jq -r '.[]'); do
+            echo "Deploying to $client-main environment..."
+            
+            # Determine function name based on type
+            case "${{ matrix.function-type.name }}" in
+              "users")
+                function_name="functionUsuarios"
+                ;;
+              "animals")
+                function_name="functionAnimales"
+                ;;
+              "plugins")
+                function_name="functionRandomUsuario"
+                ;;
+            esac
+            
+            # Check if this client uses this function
+            has_function=$(cat config/clients.json | jq -r "
+              .clients.$client.environments.main.functions.core[] == \"$function_name\" or
+              .clients.$client.environments.main.functions.plugins[] == \"$function_name\"
+            " | grep -q true && echo "true" || echo "false")
+            
+            if [ "$has_function" = "true" ]; then
+              # Get function app name
+              function_app_name="${function_name}-${client}-main"
+              
+              echo "Deploying to Function App: $function_app_name"
+              
+              # Deploy using Azure CLI with production settings
+              az functionapp deployment source config-zip \
+                --resource-group "rg-witag-${client}-main" \
+                --name "$function_app_name" \
+                --src "deploy-package-${{ matrix.function-type.name }}.zip" \
+                --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}"
+              
+              if [ $? -eq 0 ]; then
+                echo "✅ Successfully deployed to $function_app_name"
+              else
+                echo "❌ Failed to deploy to $function_app_name"
+                exit 1
+              fi
+            else
+              echo "⏭️  Skipping $client - does not use $function_name"
+            fi
+          done
+
+      - name: Verify deployments
+        if: matrix.function-type.changed == 'true'
+        run: |
+          environments='${{ steps.get-environments.outputs.environments }}'
+          
+          for client in $(echo $environments | jq -r '.[]'); do
+            # Determine function name based on type
+            case "${{ matrix.function-type.name }}" in
+              "users")
+                function_name="functionUsuarios"
+                ;;
+              "animals")
+                function_name="functionAnimales"
+                ;;
+              "plugins")
+                function_name="functionRandomUsuario"
+                ;;
+            esac
+            
+            # Check if this client uses this function
+            has_function=$(cat config/clients.json | jq -r "
+              .clients.$client.environments.main.functions.core[] == \"$function_name\" or
+              .clients.$client.environments.main.functions.plugins[] == \"$function_name\"
+            " | grep -q true && echo "true" || echo "false")
+            
+            if [ "$has_function" = "true" ]; then
+              function_app_name="${function_name}-${client}-main"
+              
+              echo "Verifying deployment for $function_app_name..."
+              
+              # Check if function app is running
+              status=$(az functionapp show \
+                --resource-group "rg-witag-${client}-main" \
+                --name "$function_app_name" \
+                --query "state" \
+                --output tsv \
+                --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}")
+              
+              if [ "$status" = "Running" ]; then
+                echo "✅ $function_app_name is running successfully"
+              else
+                echo "⚠️  $function_app_name status: $status"
+              fi
+            fi
+          done
+
+      - name: Run smoke tests
+        if: matrix.function-type.changed == 'true'
+        run: |
+          environments='${{ steps.get-environments.outputs.environments }}'
+          
+          for client in $(echo $environments | jq -r '.[]'); do
+            # Determine function name based on type
+            case "${{ matrix.function-type.name }}" in
+              "users")
+                function_name="functionUsuarios"
+                ;;
+              "animals")
+                function_name="functionAnimales"
+                ;;
+              "plugins")
+                function_name="functionRandomUsuario"
+                ;;
+            esac
+            
+            # Check if this client uses this function
+            has_function=$(cat config/clients.json | jq -r "
+              .clients.$client.environments.main.functions.core[] == \"$function_name\" or
+              .clients.$client.environments.main.functions.plugins[] == \"$function_name\"
+            " | grep -q true && echo "true" || echo "false")
+            
+            if [ "$has_function" = "true" ]; then
+              function_app_name="${function_name}-${client}-main"
+              
+              echo "Running smoke tests for $function_app_name..."
+              
+              # Get function app URL
+              function_url=$(az functionapp show \
+                --resource-group "rg-witag-${client}-main" \
+                --name "$function_app_name" \
+                --query "defaultHostName" \
+                --output tsv \
+                --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}")
+              
+              # Basic health check
+              if curl -f -s "https://$function_url" > /dev/null; then
+                echo "✅ $function_app_name health check passed"
+              else
+                echo "⚠️  $function_app_name health check failed"
+              fi
+            fi
+          done
+
+  notify-completion:
+    needs: [detect-changes, build-and-deploy]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify deployment status
+        run: |
+          if [ "${{ needs.build-and-deploy.result }}" = "success" ]; then
+            echo "🎉 All production environments deployed successfully!"
+          elif [ "${{ needs.build-and-deploy.result }}" = "failure" ]; then
+            echo "❌ Deployment to production environments failed!"
+            exit 1
+          elif [ "${{ needs.build-and-deploy.result }}" = "skipped" ]; then
+            echo "⏭️  No function changes detected, skipping deployment"
+          fi 
