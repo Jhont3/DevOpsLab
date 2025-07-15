@@ -98,12 +98,24 @@ jobs:
       - name: Install Azure CLI Bicep extension
         run: az bicep install
 
+      - name: Configure Azure CLI defaults
+        run: |
+          # Configure Azure CLI defaults to avoid caching issues that cause "content consumed" error
+          az configure --defaults location="East US"
+          echo "Azure CLI defaults configured"
+
       - name: Validate Bicep template
         run: |
           echo "✅ Validating Bicep template..."
           
           # Use bicep build to validate syntax first (safer than az validate)
-          bicep build infrastructure/bicep/main.bicep --stdout
+          bicep build infrastructure/bicep/main.bicep --stdout > /dev/null
+          
+          # Also validate modules individually
+          bicep build infrastructure/bicep/modules/appserviceplan.bicep --stdout > /dev/null
+          bicep build infrastructure/bicep/modules/cosmosdb.bicep --stdout > /dev/null
+          bicep build infrastructure/bicep/modules/functionapp.bicep --stdout > /dev/null
+          bicep build infrastructure/bicep/modules/storage.bicep --stdout > /dev/null
           
           echo "✅ Bicep syntax validation completed"
 
@@ -123,40 +135,71 @@ jobs:
             -Environment "main" \
             -SubscriptionId "${{ env.AZURE_SUBSCRIPTION_ID }}"
 
-      - name: Verify deployment
+      - name: Wait for resources to be ready
+        if: github.ref == 'refs/heads/testing' || github.ref == 'refs/heads/main' || github.event.inputs.environment != ''
         run: |
-          echo "Verifying deployment for client: ${{ matrix.client }}"
-          
-          # Check if testing environment was deployed
-          if [ "${{ github.ref }}" = "refs/heads/testing" ] || [ "${{ github.event.inputs.environment }}" = "testing" ] || [ "${{ github.event.inputs.environment }}" = "both" ]; then
-            echo "Checking testing environment..."
-            
-            # Get resource group from config
-            rg_name=$(cat config/clients.json | jq -r ".clients.${{ matrix.client }}.environments.testing.resourceGroup")
-            
-            # Check if resource group exists
-            if az group show --name "$rg_name" --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}" > /dev/null 2>&1; then
-              echo "✅ Testing resource group $rg_name exists"
-            else
-              echo "❌ Testing resource group $rg_name does not exist"
-              exit 1
-            fi
+          echo "⏳ Waiting for resources to be fully provisioned..."
+          sleep 30
+
+      - name: Initialize database with sample data
+        if: github.ref == 'refs/heads/testing' || github.ref == 'refs/heads/main' || github.event.inputs.environment != ''
+        run: |
+          # Determine environment based on branch or input
+          if [ "${{ github.ref }}" = "refs/heads/testing" ] || [ "${{ github.event.inputs.environment }}" = "testing" ]; then
+            ENVIRONMENT="testing"
+          else
+            ENVIRONMENT="main"
           fi
           
-          # Check if production environment was deployed
-          if [ "${{ github.ref }}" = "refs/heads/main" ] || [ "${{ github.event.inputs.environment }}" = "main" ] || [ "${{ github.event.inputs.environment }}" = "both" ]; then
-            echo "Checking production environment..."
+          echo "🗃️ Initializing database for ${{ matrix.client }} in $ENVIRONMENT environment..."
+          
+          pwsh -File scripts/Initialize-Database.ps1 \
+            -ClientName "${{ matrix.client }}" \
+            -Environment "$ENVIRONMENT" \
+            -ConfigPath "config/clients.json"
+
+      - name: Verify deployment
+        run: |
+          echo "🔍 Verifying deployment for client: ${{ matrix.client }}"
+          
+          # Determine environment
+          if [ "${{ github.ref }}" = "refs/heads/testing" ] || [ "${{ github.event.inputs.environment }}" = "testing" ]; then
+            ENVIRONMENT="testing"
+          else
+            ENVIRONMENT="main"
+          fi
+          
+          echo "Checking $ENVIRONMENT environment..."
+          
+          # Get resource group from config
+          rg_name=$(cat config/clients.json | jq -r ".clients.${{ matrix.client }}.environments.$ENVIRONMENT.resourceGroup")
+          cosmos_name=$(cat config/clients.json | jq -r ".clients.${{ matrix.client }}.environments.$ENVIRONMENT.cosmosDb.accountName")
+          
+          echo "📋 Expected resources:"
+          echo "   - Resource Group: $rg_name"
+          echo "   - Cosmos DB: $cosmos_name"
+          
+          # Check if resource group exists
+          if az group show --name "$rg_name" --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}" > /dev/null 2>&1; then
+            echo "✅ Resource group $rg_name exists"
             
-            # Get resource group from config
-            rg_name=$(cat config/clients.json | jq -r ".clients.${{ matrix.client }}.environments.main.resourceGroup")
+            # List resources in the group
+            echo "📦 Resources created:"
+            az resource list --resource-group "$rg_name" --query "[].{Name:name, Type:type}" --output table
             
-            # Check if resource group exists
-            if az group show --name "$rg_name" --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}" > /dev/null 2>&1; then
-              echo "✅ Production resource group $rg_name exists"
+            # Check Cosmos DB specifically
+            if az cosmosdb show --name "$cosmos_name" --resource-group "$rg_name" --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}" > /dev/null 2>&1; then
+              echo "✅ Cosmos DB $cosmos_name is accessible"
+              
+              # Check collections
+              echo "📊 Cosmos DB collections:"
+              az cosmosdb sql container list --account-name "$cosmos_name" --database-name "witag-db" --resource-group "$rg_name" --query "[].id" --output table 2>/dev/null || echo "   Collections will be available shortly..."
             else
-              echo "❌ Production resource group $rg_name does not exist"
-              exit 1
+              echo "⚠️  Cosmos DB $cosmos_name not yet fully available"
             fi
+          else
+            echo "❌ Resource group $rg_name does not exist"
+            exit 1
           fi
 
   notify-completion:

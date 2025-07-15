@@ -27,7 +27,7 @@
             ]
           },
           "functions": {
-            "core": ["functionUsuarios", "functionAnimales"],
+            "core": ["UsersFunction", "AnimalsFunction"],
             "plugins": []
           }
         },
@@ -49,7 +49,7 @@
             ]
           },
           "functions": {
-            "core": ["functionUsuarios", "functionAnimales"],
+            "core": ["UsersFunction", "AnimalsFunction"],
             "plugins": []
           }
         }
@@ -76,7 +76,7 @@
             ]
           },
           "functions": {
-            "core": ["functionUsuarios", "functionAnimales"],
+            "core": ["UsersFunction", "AnimalsFunction"],
             "plugins": []
           }
         },
@@ -98,7 +98,7 @@
             ]
           },
           "functions": {
-            "core": ["functionUsuarios", "functionAnimales"],
+            "core": ["UsersFunction", "AnimalsFunction"],
             "plugins": []
           }
         }
@@ -106,15 +106,15 @@
     }
   },
   "functionMappings": {
-    "functionUsuarios": {
+    "UsersFunction": {
       "path": "UsersFunction",
       "type": "backend"
     },
-    "functionAnimales": {
+    "AnimalsFunction": {
       "path": "AnimalsFunction", 
       "type": "backend"
     },
-    "functionRandomUsuario": {
+    "PlugginsRandomFunctionOne": {
       "path": "PlugginsRandomFunctionOne",
       "type": "backend"
     }

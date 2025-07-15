@@ -168,6 +168,7 @@ function Deploy-ClientEnvironment {
             "--template-file", "../infrastructure/bicep/main.bicep"
             "--parameters", "@$tempParamsFile"
         "--subscription", $SubscriptionId
+        "--only-show-errors"
     )
     
     $result = & $deploymentCommand[0] $deploymentCommand[1..($deploymentCommand.Length - 1)]
@@ -243,9 +244,14 @@ try {
     # Test prerequisites
     Test-Prerequisites
     
-    # Set Azure subscription
-    Write-ColorOutput "Setting Azure subscription..." "Yellow"
+    # Set Azure subscription and configure defaults to avoid CLI caching issues
+    Write-ColorOutput "Setting Azure subscription and CLI defaults..." "Yellow"
     az account set --subscription $SubscriptionId
+    
+    # Configure Azure CLI defaults to prevent "content already consumed" error
+    az configure --defaults location="$Location"
+    
+    Write-ColorOutput "✅ Azure CLI configured with defaults" "Green"
     
     # Load configuration
     $config = Get-ClientConfig -ConfigPath $ConfigFile
