@@ -21,7 +21,7 @@ Ruta al archivo de configuración de clientes
 .\Initialize-Database.ps1 -ClientName "elite" -Environment "testing"
 
 .EXAMPLE
-.\Initialize-Database.ps1 -ClientName "jarandes" -Environment "main" -ConfigPath "../config/clients.json"
+.\Initialize-Database.ps1 -ClientName "jarandes" -Environment "main" -ConfigPath "config/clients.json"
 #>
 
 param(
@@ -34,7 +34,7 @@ param(
     [string]$Environment,
     
     [Parameter(Mandatory = $false)]
-    [string]$ConfigPath = "../config/clients.json"
+    [string]$ConfigPath = "config/clients.json"
 )
 
 # Importar módulos necesarios

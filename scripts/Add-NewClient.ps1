@@ -24,7 +24,7 @@
     Azure region for deployment (default: "East US")
 
 .PARAMETER ConfigFile
-Path to the clients configuration file (default: "../config/clients.json")
+Path to the clients configuration file (default: "config/clients.json")
 
 .PARAMETER PluginFunctions
     Array of plugin functions to add to the client

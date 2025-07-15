@@ -21,7 +21,7 @@
     Azure region for deployment (default: "East US")
 
 .PARAMETER ConfigFile
-Path to the clients configuration file (default: "../config/clients.json")
+Path to the clients configuration file (default: "config/clients.json")
 
 .EXAMPLE
     .\Deploy-Environment.ps1 -ClientName "elite" -Environment "testing" -SubscriptionId "your-subscription-id"
@@ -165,7 +165,7 @@ function Deploy-ClientEnvironment {
         "az", "deployment", "sub", "create"
         "--name", $deploymentName
         "--location", $Location
-            "--template-file", "../infrastructure/bicep/main.bicep"
+            "--template-file", "infrastructure/bicep/main.bicep"
             "--parameters", "@$tempParamsFile"
         "--subscription", $SubscriptionId
         "--only-show-errors"
