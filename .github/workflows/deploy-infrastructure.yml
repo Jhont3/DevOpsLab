@@ -31,6 +31,10 @@ env:
   AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
   AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
@@ -62,7 +66,7 @@ jobs:
             
             # Create proper JSON array
             clients_json="[\"$client_name\"]"
-              echo "clients=$clients_json" >> $GITHUB_OUTPUT
+            echo "clients=$clients_json" >> $GITHUB_OUTPUT
           else
             # Automatic trigger - deploy all clients
             clients_json=$(cat config/clients.json | jq -c '.clients | keys')
