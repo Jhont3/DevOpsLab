@@ -1,0 +1,15 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AZURE_CLIENT_ID": "your-application-id-here",
+    "AZURE_TENANT_ID": "your-tenant-id-here", 
+    "AZURE_SUBSCRIPTION_ID": "your-subscription-id-here"
+  },
+  "ConnectionStrings": {
+    "CosmosDbConnectionString": "your-cosmos-connection-string-here"
+  },
+  "Project": {
+    "DefaultClient": "elite",
+    "DefaultEnvironment": "testing"
+  }
+} 

@@ -1,7 +1,7 @@
 {
   "solution": {
     "name": "witag",
-    "azureSubscription": "your-subscription-id",
+    "azureSubscription": "9e6685f2-01c5-41a0-a1c9-c1e287ae4bcd",
     "defaultLocation": "East US",
     "resourceGroupPrefix": "rg-witag"
   },
@@ -18,21 +18,11 @@
             "collections": [
               {
                 "name": "usuarios",
-                "partitionKey": "/id",
-                "defaultData": [
-                  {"id": "1", "nombre": "usuario1", "email": "usuario1@elite.com"},
-                  {"id": "2", "nombre": "usuario2", "email": "usuario2@elite.com"},
-                  {"id": "3", "nombre": "usuario3", "email": "usuario3@elite.com"}
-                ]
+                "partitionKey": "/id"
               },
               {
-                "name": "animales",
-                "partitionKey": "/id",
-                "defaultData": [
-                  {"id": "1", "nombre": "perro", "tipo": "mamifero"},
-                  {"id": "2", "nombre": "gato", "tipo": "mamifero"},
-                  {"id": "3", "nombre": "ratón", "tipo": "mamifero"}
-                ]
+                "name": "animales", 
+                "partitionKey": "/id"
               }
             ]
           },
@@ -42,7 +32,7 @@
           }
         },
         "main": {
-          "resourceGroup": "rg-witag-elite-main",
+          "resourceGroup": "rg-witag-elite-main", 
           "location": "East US",
           "cosmosDb": {
             "accountName": "cosmos-witag-elite-main",
@@ -50,21 +40,11 @@
             "collections": [
               {
                 "name": "usuarios",
-                "partitionKey": "/id",
-                "defaultData": [
-                  {"id": "1", "nombre": "usuario1", "email": "usuario1@elite.com"},
-                  {"id": "2", "nombre": "usuario2", "email": "usuario2@elite.com"},
-                  {"id": "3", "nombre": "usuario3", "email": "usuario3@elite.com"}
-                ]
+                "partitionKey": "/id"
               },
               {
                 "name": "animales",
-                "partitionKey": "/id",
-                "defaultData": [
-                  {"id": "1", "nombre": "perro", "tipo": "mamifero"},
-                  {"id": "2", "nombre": "gato", "tipo": "mamifero"},
-                  {"id": "3", "nombre": "ratón", "tipo": "mamifero"}
-                ]
+                "partitionKey": "/id"
               }
             ]
           },
@@ -82,26 +62,16 @@
           "resourceGroup": "rg-witag-jarandes-testing",
           "location": "East US",
           "cosmosDb": {
-            "accountName": "cosmos-witag-jarandes-testing",
+            "accountName": "cosmos-witag-jarandes-testing", 
             "databaseName": "witag-db",
             "collections": [
               {
                 "name": "usuarios",
-                "partitionKey": "/id",
-                "defaultData": [
-                  {"id": "1", "nombre": "usuario1", "email": "usuario1@jarandes.com"},
-                  {"id": "2", "nombre": "usuario2", "email": "usuario2@jarandes.com"},
-                  {"id": "3", "nombre": "usuario3", "email": "usuario3@jarandes.com"}
-                ]
+                "partitionKey": "/id"
               },
               {
                 "name": "animales",
-                "partitionKey": "/id",
-                "defaultData": [
-                  {"id": "1", "nombre": "perro", "tipo": "mamifero"},
-                  {"id": "2", "nombre": "gato", "tipo": "mamifero"},
-                  {"id": "3", "nombre": "ratón", "tipo": "mamifero"}
-                ]
+                "partitionKey": "/id"
               }
             ]
           },
@@ -112,172 +82,24 @@
         },
         "main": {
           "resourceGroup": "rg-witag-jarandes-main",
-          "location": "East US",
+          "location": "East US", 
           "cosmosDb": {
             "accountName": "cosmos-witag-jarandes-main",
             "databaseName": "witag-db",
             "collections": [
               {
                 "name": "usuarios",
-                "partitionKey": "/id",
-                "defaultData": [
-                  {"id": "1", "nombre": "usuario1", "email": "usuario1@jarandes.com"},
-                  {"id": "2", "nombre": "usuario2", "email": "usuario2@jarandes.com"},
-                  {"id": "3", "nombre": "usuario3", "email": "usuario3@jarandes.com"}
-                ]
+                "partitionKey": "/id"
               },
               {
                 "name": "animales",
-                "partitionKey": "/id",
-                "defaultData": [
-                  {"id": "1", "nombre": "perro", "tipo": "mamifero"},
-                  {"id": "2", "nombre": "gato", "tipo": "mamifero"},
-                  {"id": "3", "nombre": "ratón", "tipo": "mamifero"}
-                ]
+                "partitionKey": "/id"
               }
             ]
           },
           "functions": {
             "core": ["functionUsuarios", "functionAnimales"],
             "plugins": []
-          }
-        }
-      }
-    },
-    "ght": {
-      "displayName": "GHT Client",
-      "environments": {
-        "testing": {
-          "resourceGroup": "rg-witag-ght-testing",
-          "location": "East US",
-          "cosmosDb": {
-            "accountName": "cosmos-witag-ght-testing",
-            "databaseName": "witag-db",
-            "collections": [
-              {
-                "name": "usuarios",
-                "partitionKey": "/id",
-                "defaultData": [
-                  {"id": "1", "nombre": "usuario1", "email": "usuario1@ght.com"},
-                  {"id": "2", "nombre": "usuario2", "email": "usuario2@ght.com"},
-                  {"id": "3", "nombre": "usuario3", "email": "usuario3@ght.com"}
-                ]
-              },
-              {
-                "name": "animales",
-                "partitionKey": "/id",
-                "defaultData": [
-                  {"id": "1", "nombre": "perro", "tipo": "mamifero"},
-                  {"id": "2", "nombre": "gato", "tipo": "mamifero"},
-                  {"id": "3", "nombre": "ratón", "tipo": "mamifero"}
-                ]
-              }
-            ]
-          },
-          "functions": {
-            "core": ["functionUsuarios", "functionAnimales"],
-            "plugins": []
-          }
-        },
-        "main": {
-          "resourceGroup": "rg-witag-ght-main",
-          "location": "East US",
-          "cosmosDb": {
-            "accountName": "cosmos-witag-ght-main",
-            "databaseName": "witag-db",
-            "collections": [
-              {
-                "name": "usuarios",
-                "partitionKey": "/id",
-                "defaultData": [
-                  {"id": "1", "nombre": "usuario1", "email": "usuario1@ght.com"},
-                  {"id": "2", "nombre": "usuario2", "email": "usuario2@ght.com"},
-                  {"id": "3", "nombre": "usuario3", "email": "usuario3@ght.com"}
-                ]
-              },
-              {
-                "name": "animales",
-                "partitionKey": "/id",
-                "defaultData": [
-                  {"id": "1", "nombre": "perro", "tipo": "mamifero"},
-                  {"id": "2", "nombre": "gato", "tipo": "mamifero"},
-                  {"id": "3", "nombre": "ratón", "tipo": "mamifero"}
-                ]
-              }
-            ]
-          },
-          "functions": {
-            "core": ["functionUsuarios", "functionAnimales"],
-            "plugins": []
-          }
-        }
-      }
-    },
-    "florexpo": {
-      "displayName": "Florexpo Client",
-      "environments": {
-        "testing": {
-          "resourceGroup": "rg-witag-florexpo-testing",
-          "location": "East US",
-          "cosmosDb": {
-            "accountName": "cosmos-witag-florexpo-testing",
-            "databaseName": "witag-db",
-            "collections": [
-              {
-                "name": "usuarios",
-                "partitionKey": "/id",
-                "defaultData": [
-                  {"id": "1", "nombre": "usuario1", "email": "usuario1@florexpo.com"},
-                  {"id": "2", "nombre": "usuario2", "email": "usuario2@florexpo.com"},
-                  {"id": "3", "nombre": "usuario3", "email": "usuario3@florexpo.com"}
-                ]
-              },
-              {
-                "name": "animales",
-                "partitionKey": "/id",
-                "defaultData": [
-                  {"id": "1", "nombre": "perro", "tipo": "mamifero"},
-                  {"id": "2", "nombre": "gato", "tipo": "mamifero"},
-                  {"id": "3", "nombre": "ratón", "tipo": "mamifero"}
-                ]
-              }
-            ]
-          },
-          "functions": {
-            "core": ["functionUsuarios", "functionAnimales"],
-            "plugins": ["functionRandomUsuario"]
-          }
-        },
-        "main": {
-          "resourceGroup": "rg-witag-florexpo-main",
-          "location": "East US",
-          "cosmosDb": {
-            "accountName": "cosmos-witag-florexpo-main",
-            "databaseName": "witag-db",
-            "collections": [
-              {
-                "name": "usuarios",
-                "partitionKey": "/id",
-                "defaultData": [
-                  {"id": "1", "nombre": "usuario1", "email": "usuario1@florexpo.com"},
-                  {"id": "2", "nombre": "usuario2", "email": "usuario2@florexpo.com"},
-                  {"id": "3", "nombre": "usuario3", "email": "usuario3@florexpo.com"}
-                ]
-              },
-              {
-                "name": "animales",
-                "partitionKey": "/id",
-                "defaultData": [
-                  {"id": "1", "nombre": "perro", "tipo": "mamifero"},
-                  {"id": "2", "nombre": "gato", "tipo": "mamifero"},
-                  {"id": "3", "nombre": "ratón", "tipo": "mamifero"}
-                ]
-              }
-            ]
-          },
-          "functions": {
-            "core": ["functionUsuarios", "functionAnimales"],
-            "plugins": ["functionRandomUsuario"]
           }
         }
       }
@@ -289,7 +111,7 @@
       "type": "backend"
     },
     "functionAnimales": {
-      "path": "AnimalsFunction",
+      "path": "AnimalsFunction", 
       "type": "backend"
     },
     "functionRandomUsuario": {

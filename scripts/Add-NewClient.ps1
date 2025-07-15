@@ -24,7 +24,7 @@
     Azure region for deployment (default: "East US")
 
 .PARAMETER ConfigFile
-    Path to the clients configuration file (default: "config/clients.json")
+Path to the clients configuration file (default: "../config/clients.json")
 
 .PARAMETER PluginFunctions
     Array of plugin functions to add to the client
@@ -54,7 +54,7 @@ param(
     [string]$Location = "East US",
 
     [Parameter(Mandatory = $false)]
-    [string]$ConfigFile = "config/clients.json",
+    [string]$ConfigFile = "../config/clients.json",
 
     [Parameter(Mandatory = $false)]
     [string[]]$PluginFunctions = @(),

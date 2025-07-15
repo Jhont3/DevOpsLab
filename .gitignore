@@ -6,12 +6,17 @@
 # User-specific files
 *federated-credential*.json
 .cursor/
+scripts/Config.ps1
 *.rsuser
 *.suo
 *.user
 *.userosscache
 *.sln.docstates
 *.env
+
+# Local configuration files
+local.settings.json
+.env.local
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

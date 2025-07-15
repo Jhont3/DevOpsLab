@@ -21,7 +21,7 @@
     Azure region for deployment (default: "East US")
 
 .PARAMETER ConfigFile
-    Path to the clients configuration file (default: "config/clients.json")
+Path to the clients configuration file (default: "../config/clients.json")
 
 .EXAMPLE
     .\Deploy-Environment.ps1 -ClientName "elite" -Environment "testing" -SubscriptionId "your-subscription-id"
@@ -42,7 +42,7 @@ param(
     [string]$Location = "East US",
 
     [Parameter(Mandatory = $false)]
-    [string]$ConfigFile = "config/clients.json"
+    [string]$ConfigFile = "../config/clients.json"
 )
 
 # Set error action preference
@@ -133,19 +133,52 @@ function Deploy-ClientEnvironment {
     Write-ColorOutput "Deployment parameters:" "Cyan"
     Write-ColorOutput ($parametersObject | ConvertTo-Json -Depth 3) "Gray"
     
-    # Deploy using Azure CLI
+    # Deploy using Azure CLI with temporary parameters file
     Write-ColorOutput "Starting Bicep deployment..." "Yellow"
     
-    $deploymentCommand = @(
-        "az", "deployment", "sub", "create"
-        "--name", $deploymentName
-        "--location", $Location
-        "--template-file", "infrastructure/bicep/main.bicep"
-        "--parameters", $parametersJson
-        "--subscription", $SubscriptionId
-    )
+    # Create temporary parameters file to avoid PowerShell JSON serialization issues
+    $tempParamsFile = [System.IO.Path]::GetTempFileName() + ".json"
     
-    $result = & $deploymentCommand[0] $deploymentCommand[1..($deploymentCommand.Length - 1)]
+    try {
+        # Create ARM parameters file format
+        $armParametersObject = @{
+            '$schema' = 'https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#'
+            contentVersion = '1.0.0.0'
+            parameters = @{}
+        }
+        
+        # Convert our parameters to ARM format
+        # Use the original $parametersObject instead of converting from JSON
+        foreach ($param in $parametersObject.PSObject.Properties) {
+            $armParametersObject.parameters[$param.Name] = @{
+                value = $param.Value
+            }
+        }
+        
+        # Write to temporary file
+        $armParametersObject | ConvertTo-Json -Depth 10 | Set-Content -Path $tempParamsFile -Encoding UTF8
+        
+        Write-ColorOutput "Created temporary parameters file: $tempParamsFile" "Gray"
+        
+        # Deploy using the parameters file
+        $deploymentCommand = @(
+            "az", "deployment", "sub", "create"
+            "--name", $deploymentName
+            "--location", $Location
+            "--template-file", "../infrastructure/bicep/main.bicep"
+            "--parameters", "@$tempParamsFile"
+            "--subscription", $SubscriptionId
+        )
+        
+        $result = & $deploymentCommand[0] $deploymentCommand[1..($deploymentCommand.Length - 1)]
+    }
+    finally {
+        # Clean up temporary file
+        if (Test-Path $tempParamsFile) {
+            Remove-Item $tempParamsFile -Force
+            Write-ColorOutput "Cleaned up temporary parameters file" "Gray"
+        }
+    }
     
     if ($LASTEXITCODE -ne 0) {
         throw "Bicep deployment failed with exit code: $LASTEXITCODE"
