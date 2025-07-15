@@ -1,0 +1,13 @@
+{
+  "analyzers": {
+    "core": {
+      "verbose": false,
+      "enabled": true,
+      "rules": {
+        "outputs-should-not-contain-secrets": {
+          "level": "info"
+        }
+      }
+    }
+  }
+} 

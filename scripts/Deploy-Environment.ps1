@@ -161,16 +161,16 @@ function Deploy-ClientEnvironment {
         Write-ColorOutput "Created temporary parameters file: $tempParamsFile" "Gray"
         
         # Deploy using the parameters file
-        $deploymentCommand = @(
-            "az", "deployment", "sub", "create"
-            "--name", $deploymentName
-            "--location", $Location
+    $deploymentCommand = @(
+        "az", "deployment", "sub", "create"
+        "--name", $deploymentName
+        "--location", $Location
             "--template-file", "../infrastructure/bicep/main.bicep"
             "--parameters", "@$tempParamsFile"
-            "--subscription", $SubscriptionId
-        )
-        
-        $result = & $deploymentCommand[0] $deploymentCommand[1..($deploymentCommand.Length - 1)]
+        "--subscription", $SubscriptionId
+    )
+    
+    $result = & $deploymentCommand[0] $deploymentCommand[1..($deploymentCommand.Length - 1)]
     }
     finally {
         # Clean up temporary file

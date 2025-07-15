@@ -96,11 +96,7 @@ module coreFunctionApps 'modules/functionapp.bicep' = [for functionName in coreF
     cosmosDbConnectionString: cosmosDb.outputs.connectionString
     cosmosDbName: cosmosDbName
   }
-  dependsOn: [
-    appServicePlan
-    storageAccount
-    cosmosDb
-  ]
+  // Dependencies are automatically managed by Bicep based on parameter references
 }]
 
 // Deploy Plugin Functions
@@ -119,11 +115,7 @@ module pluginFunctionApps 'modules/functionapp.bicep' = [for functionName in plu
     cosmosDbConnectionString: cosmosDb.outputs.connectionString
     cosmosDbName: cosmosDbName
   }
-  dependsOn: [
-    appServicePlan
-    storageAccount
-    cosmosDb
-  ]
+  // Dependencies are automatically managed by Bicep based on parameter references  
 }]
 
 // Outputs

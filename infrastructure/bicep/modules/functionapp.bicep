@@ -20,6 +20,7 @@ param appServicePlanId string
 param storageAccountName string
 
 @description('Storage Account key')
+@secure()
 param storageAccountKey string
 
 @description('Cosmos DB connection string')
