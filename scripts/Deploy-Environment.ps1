@@ -42,7 +42,7 @@ param(
     [string]$Location = "East US",
 
     [Parameter(Mandatory = $false)]
-    [string]$ConfigFile = "../config/clients.json"
+    [string]$ConfigFile = "config/clients.json"
 )
 
 # Set error action preference

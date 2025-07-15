@@ -54,7 +54,7 @@ param(
     [string]$Location = "East US",
 
     [Parameter(Mandatory = $false)]
-    [string]$ConfigFile = "../config/clients.json",
+    [string]$ConfigFile = "config/clients.json",
 
     [Parameter(Mandatory = $false)]
     [string[]]$PluginFunctions = @(),
