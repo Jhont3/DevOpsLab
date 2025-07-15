@@ -60,12 +60,12 @@ jobs:
             client_name="${{ github.event.inputs.client_name }}"
             environment="${{ github.event.inputs.environment }}"
             
-            # Create proper JSON array with quotes
-            clients_json=$(echo "[\"$client_name\"]")
+            # Create proper JSON array
+            clients_json="[\"$client_name\"]"
               echo "clients=$clients_json" >> $GITHUB_OUTPUT
           else
             # Automatic trigger - deploy all clients
-            clients_json=$(cat config/clients.json | jq -r '.clients | keys')
+            clients_json=$(cat config/clients.json | jq -c '.clients | keys')
             echo "clients=$clients_json" >> $GITHUB_OUTPUT
           fi
 
