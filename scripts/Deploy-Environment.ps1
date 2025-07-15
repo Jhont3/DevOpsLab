@@ -160,6 +160,11 @@ function Deploy-ClientEnvironment {
         
         Write-ColorOutput "Created temporary parameters file: $tempParamsFile" "Gray"
         
+        # Debug: Show content of parameters file
+        Write-ColorOutput "Parameters file content:" "Cyan"
+        $fileContent = Get-Content -Path $tempParamsFile -Raw
+        Write-ColorOutput $fileContent "Gray"
+        
         # Deploy using the parameters file
     $deploymentCommand = @(
         "az", "deployment", "sub", "create"
