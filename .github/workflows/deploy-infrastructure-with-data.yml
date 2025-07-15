@@ -116,12 +116,10 @@ jobs:
           ENVIRONMENT="${{ needs.setup.outputs.environment }}"
           
           # Read configuration
-          RESOURCE_GROUP=$(jq -r ".clients.$CLIENT_NAME.environments.$ENVIRONMENT.resourceGroup" config/clients.json)
           LOCATION=$(jq -r ".clients.$CLIENT_NAME.environments.$ENVIRONMENT.location" config/clients.json)
           
           # Validate deployment (dry-run)
-          az deployment group validate \
-            --resource-group $RESOURCE_GROUP \
+          az deployment sub validate \
             --template-file infrastructure/bicep/main.bicep \
             --parameters clientName=$CLIENT_NAME environmentName=$ENVIRONMENT \
             --location "$LOCATION" \
@@ -151,7 +149,6 @@ jobs:
           ENVIRONMENT="${{ needs.setup.outputs.environment }}"
           
           # Read configuration
-          RESOURCE_GROUP=$(jq -r ".clients.$CLIENT_NAME.environments.$ENVIRONMENT.resourceGroup" config/clients.json)
           LOCATION=$(jq -r ".clients.$CLIENT_NAME.environments.$ENVIRONMENT.location" config/clients.json)
           
           # Create resource group if it doesn't exist
@@ -159,7 +156,6 @@ jobs:
           
           # Run what-if
           az deployment group what-if \
-            --resource-group $RESOURCE_GROUP \
             --template-file infrastructure/bicep/main.bicep \
             --parameters clientName=$CLIENT_NAME environmentName=$ENVIRONMENT \
             --no-prompt
@@ -276,7 +272,6 @@ jobs:
           }
           
           # Check if Cosmos DB exists
-          $cosmos = az cosmosdb show --name $cosmosAccount --resource-group $resourceGroup --query "name" -o tsv 2>/dev/null
           if ($cosmos) {
             echo "✅ Cosmos DB: $cosmosAccount exists"
           } else {
