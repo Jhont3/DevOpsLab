@@ -108,7 +108,7 @@ jobs:
       - name: Initialize Cosmos DB Data
         run: |
           echo "📋 Initializing Cosmos DB with default data..."
-          pwsh -File scripts/Initialize-CosmosData-CLI.ps1 \
+          pwsh -File scripts/Initialize-CosmosData.ps1 \
             -ClientName "elite" \
             -Environment "main"
           echo "✅ Data initialization completed"
@@ -182,7 +182,7 @@ jobs:
       - name: Initialize Cosmos DB Data
         run: |
           echo "📋 Initializing Cosmos DB with default data..."
-          pwsh -File scripts/Initialize-CosmosData-CLI.ps1 \
+          pwsh -File scripts/Initialize-CosmosData.ps1 \
             -ClientName "jarandes" \
             -Environment "main"
           echo "✅ Data initialization completed"
@@ -256,7 +256,7 @@ jobs:
       - name: Initialize Cosmos DB Data
         run: |
           echo "📋 Initializing Cosmos DB with default data..."
-          pwsh -File scripts/Initialize-CosmosData-CLI.ps1 \
+          pwsh -File scripts/Initialize-CosmosData.ps1 \
             -ClientName "${{ github.event.inputs.client_name }}" \
             -Environment "main"
           echo "✅ Data initialization completed"

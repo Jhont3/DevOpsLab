@@ -6,7 +6,16 @@ Inicializa las colecciones de CosmosDB con datos de prueba
 
 .DESCRIPTION
 Este script inicializa las colecciones 'usuarios' y 'animales' de CosmosDB 
-con los datos de prueba requeridos después del despliegue de infraestructura.
+con los datos de prueba requeridos después del de    # Verificar autenticación con Azure usando Azure CLI
+    $accountInfo = az account show --output json 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Log "No hay contexto de Azure activo. Ejecutando autenticación..." "WARNING"
+        az login
+    }
+    else {
+        $account = $accountInfo | ConvertFrom-Json
+        Write-Log "Conectado a Azure con la cuenta: $($account.user.name)" "SUCCESS"
+    }de infraestructura.
 
 .PARAMETER ClientName
 Nombre del cliente (elite, jarandes)
@@ -37,9 +46,9 @@ param(
     [string]$ConfigPath = "config/clients.json"
 )
 
-# Importar módulos necesarios
-Import-Module Az.Accounts -Force
-Import-Module Az.CosmosDB -Force
+# Importar módulos necesarios (comentado para GitHub Actions)
+# Import-Module Az.Accounts -Force
+# Import-Module Az.CosmosDB -Force
 
 # Función para escribir logs con timestamp
 function Write-Log {
@@ -90,9 +99,10 @@ function New-CosmosDocument {
     )
     
     try {
-        # Obtener la clave de acceso
-        $keys = Get-AzCosmosDBAccountKey -ResourceGroupName $ResourceGroup -Name $AccountName
-        $primaryKey = $keys.PrimaryMasterKey
+        # Obtener la clave de acceso usando Azure CLI
+        $keysJson = az cosmosdb keys list --resource-group $ResourceGroup --name $AccountName --output json
+        $keys = $keysJson | ConvertFrom-Json
+        $primaryKey = $keys.primaryMasterKey
         
         # Construir la URI
         $uri = "https://$AccountName.documents.azure.com/dbs/$DatabaseName/colls/$CollectionName/docs"
