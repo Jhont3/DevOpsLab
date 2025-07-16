@@ -199,6 +199,7 @@ function Deploy-ClientEnvironment {
         }
         
         throw "Bicep deployment failed with exit code: $LASTEXITCODE"
+        
     }
     
     Write-ColorOutput "Deployment completed successfully!" "Green"
