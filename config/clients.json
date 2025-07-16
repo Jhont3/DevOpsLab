@@ -13,7 +13,7 @@
           "resourceGroup": "rg-witag-elite-testing",
           "location": "East US",
           "cosmosDb": {
-            "accountName": "cosmos-witag-elite-testing",
+            "accountName": "cosmos-witag-elite-testing-2025",
             "databaseName": "witag-db",
             "collections": [
               {
@@ -35,7 +35,7 @@
           "resourceGroup": "rg-witag-elite-main", 
           "location": "East US",
           "cosmosDb": {
-            "accountName": "cosmos-witag-elite-main",
+            "accountName": "cosmos-witag-elite-main-2025",
             "databaseName": "witag-db",
             "collections": [
               {
