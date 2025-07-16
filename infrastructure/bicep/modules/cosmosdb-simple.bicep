@@ -13,11 +13,8 @@ param clientName string
 @description('Environment name')
 param environmentName string
 
-@description('Collections configuration')
-param collections array
-
-// Cosmos DB Account - Robust Serverless configuration
-resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2021-10-15' = {
+// Cosmos DB Account - Ultra minimal Serverless configuration
+resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2022-11-15' = {
   name: accountName
   location: location
   kind: 'GlobalDocumentDB'
@@ -27,8 +24,6 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2021-10-15' = {
     enableMultipleWriteLocations: false
     consistencyPolicy: {
       defaultConsistencyLevel: 'Session'
-      maxIntervalInSeconds: 5
-      maxStalenessPrefix: 100
     }
     locations: [
       {
@@ -41,9 +36,6 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2021-10-15' = {
         name: 'EnableServerless'
       }
     ]
-    publicNetworkAccess: 'Enabled'
-    enableFreeTier: false
-    enableAnalyticalStorage: false
   }
   tags: {
     environment: environmentName
@@ -53,8 +45,8 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2021-10-15' = {
   }
 }
 
-// Cosmos DB Database - Robust configuration
-resource cosmosDatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2021-10-15' = {
+// Cosmos DB Database - Ultra minimal configuration
+resource cosmosDatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2022-11-15' = {
   name: databaseName
   parent: cosmosAccount
   properties: {
@@ -64,41 +56,9 @@ resource cosmosDatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2021
   }
 }
 
-// Cosmos DB Containers - Robust configuration
-resource cosmosContainers 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2021-10-15' = [for collection in collections: {
-  name: collection.name
-  parent: cosmosDatabase
-  properties: {
-    resource: {
-      id: collection.name
-      partitionKey: {
-        paths: [
-          collection.partitionKey
-        ]
-        kind: 'Hash'
-      }
-      defaultTtl: -1
-      indexingPolicy: {
-        indexingMode: 'consistent'
-        automatic: true
-        includedPaths: [
-          {
-            path: '/*'
-          }
-        ]
-        excludedPaths: [
-          {
-            path: '/"_etag"/?'
-          }
-        ]
-      }
-    }
-  }
-}]
-
 // Outputs
 output accountName string = cosmosAccount.name
 output databaseName string = cosmosDatabase.name
 output connectionString string = cosmosAccount.listConnectionStrings().connectionStrings[0].connectionString
 output endpoint string = cosmosAccount.properties.documentEndpoint
-output primaryKey string = cosmosAccount.listKeys().primaryMasterKey 
+output primaryKey string = cosmosAccount.listKeys().primaryMasterKey

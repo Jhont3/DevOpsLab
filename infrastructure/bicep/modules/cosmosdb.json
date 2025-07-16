@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.36.177.2456",
-      "templateHash": "21356085789667145"
+      "templateHash": "2522955475243607563"
     }
   },
   "parameters": {
@@ -49,29 +49,33 @@
   "resources": [
     {
       "type": "Microsoft.DocumentDB/databaseAccounts",
-      "apiVersion": "2023-04-15",
+      "apiVersion": "2021-10-15",
       "name": "[parameters('accountName')]",
       "location": "[parameters('location')]",
       "kind": "GlobalDocumentDB",
       "properties": {
+        "databaseAccountOfferType": "Standard",
+        "enableAutomaticFailover": false,
+        "enableMultipleWriteLocations": false,
         "consistencyPolicy": {
-          "defaultConsistencyLevel": "Session"
+          "defaultConsistencyLevel": "Session",
+          "maxIntervalInSeconds": 5,
+          "maxStalenessPrefix": 100
         },
         "locations": [
           {
             "locationName": "[parameters('location')]",
-            "failoverPriority": 0,
-            "isZoneRedundant": false
+            "failoverPriority": 0
           }
         ],
-        "databaseAccountOfferType": "Standard",
-        "enableAutomaticFailover": false,
-        "enableMultipleWriteLocations": false,
         "capabilities": [
           {
             "name": "EnableServerless"
           }
-        ]
+        ],
+        "publicNetworkAccess": "Enabled",
+        "enableFreeTier": false,
+        "enableAnalyticalStorage": false
       },
       "tags": {
         "environment": "[parameters('environmentName')]",
@@ -82,7 +86,7 @@
     },
     {
       "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases",
-      "apiVersion": "2023-04-15",
+      "apiVersion": "2021-10-15",
       "name": "[format('{0}/{1}', parameters('accountName'), parameters('databaseName'))]",
       "properties": {
         "resource": {
@@ -99,7 +103,7 @@
         "count": "[length(parameters('collections'))]"
       },
       "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers",
-      "apiVersion": "2023-04-15",
+      "apiVersion": "2021-10-15",
       "name": "[format('{0}/{1}/{2}', parameters('accountName'), parameters('databaseName'), parameters('collections')[copyIndex()].name)]",
       "properties": {
         "resource": {
@@ -109,6 +113,21 @@
               "[parameters('collections')[copyIndex()].partitionKey]"
             ],
             "kind": "Hash"
+          },
+          "defaultTtl": -1,
+          "indexingPolicy": {
+            "indexingMode": "consistent",
+            "automatic": true,
+            "includedPaths": [
+              {
+                "path": "/*"
+              }
+            ],
+            "excludedPaths": [
+              {
+                "path": "/\"_etag\"/?"
+              }
+            ]
           }
         }
       },
@@ -128,15 +147,15 @@
     },
     "connectionString": {
       "type": "string",
-      "value": "[listConnectionStrings(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('accountName')), '2023-04-15').connectionStrings[0].connectionString]"
+      "value": "[listConnectionStrings(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('accountName')), '2021-10-15').connectionStrings[0].connectionString]"
     },
     "endpoint": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('accountName')), '2023-04-15').documentEndpoint]"
+      "value": "[reference(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('accountName')), '2021-10-15').documentEndpoint]"
     },
     "primaryKey": {
       "type": "string",
-      "value": "[listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('accountName')), '2023-04-15').primaryMasterKey]"
+      "value": "[listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('accountName')), '2021-10-15').primaryMasterKey]"
     }
   }
 }

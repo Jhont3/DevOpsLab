@@ -1,0 +1,288 @@
+name: Deploy Infrastructure - Main
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      client_name:
+        description: 'Client name to deploy'
+        required: true
+        default: 'elite'
+        type: choice
+        options:
+          - elite
+          - jarandes
+      force_deploy:
+        description: 'Force deployment even if resources exist'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  DEFAULT_LOCATION: "Australia East"
+
+jobs:
+  validate-templates:
+    name: 🔍 Validate Bicep Templates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Azure CLI
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.53.0
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Install Bicep
+        run: az bicep install
+
+      - name: Validate Main Template
+        run: |
+          echo "🔍 Validating main Bicep template..."
+          az bicep build --file infrastructure/bicep/main.bicep
+          echo "✅ Main template validation passed"
+
+      - name: Validate Cosmos DB Template
+        run: |
+          echo "🔍 Validating Cosmos DB template..."
+          az bicep build --file infrastructure/bicep/modules/cosmosdb.bicep
+          echo "✅ Cosmos DB template validation passed"
+
+      - name: Validate Storage Template
+        run: |
+          echo "🔍 Validating Storage template..."
+          az bicep build --file infrastructure/bicep/modules/storage.bicep
+          echo "✅ Storage template validation passed"
+
+  deploy-elite-main:
+    name: 🚀 Deploy Elite Main Environment
+    runs-on: ubuntu-latest
+    needs: validate-templates
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Azure CLI
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.53.0
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set Azure Subscription
+        run: |
+          az account set --subscription ${{ env.AZURE_SUBSCRIPTION_ID }}
+          echo "✅ Azure subscription set"
+
+      - name: Deploy Infrastructure
+        run: |
+          echo "🚀 Starting deployment for elite-main..."
+          pwsh -File scripts/Deploy-Environment.ps1 \
+            -ClientName "elite" \
+            -Environment "main" \
+            -SubscriptionId "${{ env.AZURE_SUBSCRIPTION_ID }}" \
+            -Location "${{ env.DEFAULT_LOCATION }}"
+          echo "✅ Infrastructure deployment completed"
+
+      - name: Wait for Resources to be Ready
+        run: |
+          echo "⏳ Waiting for resources to be fully ready..."
+          sleep 60
+          echo "✅ Wait completed"
+
+      - name: Initialize Cosmos DB Data
+        run: |
+          echo "📋 Initializing Cosmos DB with default data..."
+          pwsh -File scripts/Initialize-CosmosData.ps1 \
+            -ClientName "elite" \
+            -Environment "main"
+          echo "✅ Data initialization completed"
+
+      - name: Validate Cosmos DB Data
+        run: |
+          echo "🔍 Validating Cosmos DB data..."
+          pwsh -File scripts/Validate-CosmosData.ps1 \
+            -ClientName "elite" \
+            -Environment "main"
+          echo "✅ Data validation completed"
+
+      - name: Get Deployment Summary
+        run: |
+          echo "📊 Deployment Summary:"
+          echo "   🏢 Client: elite"
+          echo "   🌍 Environment: main"
+          echo "   📍 Location: ${{ env.DEFAULT_LOCATION }}"
+          echo "   🆔 Subscription: ${{ env.AZURE_SUBSCRIPTION_ID }}"
+          echo "   📅 Deployed at: $(date)"
+          
+          # Get resource group info
+          rg_name="rg-witag-elite-main"
+          echo "   📦 Resource Group: $rg_name"
+          
+          # List created resources
+          echo "🔗 Created Resources:"
+          az resource list --resource-group $rg_name --output table || true
+
+  deploy-jarandes-main:
+    name: 🚀 Deploy Jarandes Main Environment
+    runs-on: ubuntu-latest
+    needs: validate-templates
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Azure CLI
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.53.0
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set Azure Subscription
+        run: |
+          az account set --subscription ${{ env.AZURE_SUBSCRIPTION_ID }}
+          echo "✅ Azure subscription set"
+
+      - name: Deploy Infrastructure
+        run: |
+          echo "🚀 Starting deployment for jarandes-main..."
+          pwsh -File scripts/Deploy-Environment.ps1 \
+            -ClientName "jarandes" \
+            -Environment "main" \
+            -SubscriptionId "${{ env.AZURE_SUBSCRIPTION_ID }}" \
+            -Location "${{ env.DEFAULT_LOCATION }}"
+          echo "✅ Infrastructure deployment completed"
+
+      - name: Wait for Resources to be Ready
+        run: |
+          echo "⏳ Waiting for resources to be fully ready..."
+          sleep 60
+          echo "✅ Wait completed"
+
+      - name: Initialize Cosmos DB Data
+        run: |
+          echo "📋 Initializing Cosmos DB with default data..."
+          pwsh -File scripts/Initialize-CosmosData.ps1 \
+            -ClientName "jarandes" \
+            -Environment "main"
+          echo "✅ Data initialization completed"
+
+      - name: Validate Cosmos DB Data
+        run: |
+          echo "🔍 Validating Cosmos DB data..."
+          pwsh -File scripts/Validate-CosmosData.ps1 \
+            -ClientName "jarandes" \
+            -Environment "main"
+          echo "✅ Data validation completed"
+
+      - name: Get Deployment Summary
+        run: |
+          echo "📊 Deployment Summary:"
+          echo "   🏢 Client: jarandes"
+          echo "   🌍 Environment: main"
+          echo "   📍 Location: ${{ env.DEFAULT_LOCATION }}"
+          echo "   🆔 Subscription: ${{ env.AZURE_SUBSCRIPTION_ID }}"
+          echo "   📅 Deployed at: $(date)"
+          
+          # Get resource group info
+          rg_name="rg-witag-jarandes-main"
+          echo "   📦 Resource Group: $rg_name"
+          
+          # List created resources
+          echo "🔗 Created Resources:"
+          az resource list --resource-group $rg_name --output table || true
+
+  manual-deploy:
+    name: 🎯 Manual Deploy (Workflow Dispatch)
+    runs-on: ubuntu-latest
+    needs: validate-templates
+    if: github.event_name == 'workflow_dispatch'
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Azure CLI
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.53.0
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set Azure Subscription
+        run: |
+          az account set --subscription ${{ env.AZURE_SUBSCRIPTION_ID }}
+          echo "✅ Azure subscription set"
+
+      - name: Deploy Infrastructure
+        run: |
+          echo "🚀 Starting manual deployment for ${{ github.event.inputs.client_name }}-main..."
+          pwsh -File scripts/Deploy-Environment.ps1 \
+            -ClientName "${{ github.event.inputs.client_name }}" \
+            -Environment "main" \
+            -SubscriptionId "${{ env.AZURE_SUBSCRIPTION_ID }}" \
+            -Location "${{ env.DEFAULT_LOCATION }}"
+          echo "✅ Infrastructure deployment completed"
+
+      - name: Wait for Resources to be Ready
+        run: |
+          echo "⏳ Waiting for resources to be fully ready..."
+          sleep 60
+          echo "✅ Wait completed"
+
+      - name: Initialize Cosmos DB Data
+        run: |
+          echo "📋 Initializing Cosmos DB with default data..."
+          pwsh -File scripts/Initialize-CosmosData.ps1 \
+            -ClientName "${{ github.event.inputs.client_name }}" \
+            -Environment "main"
+          echo "✅ Data initialization completed"
+
+      - name: Validate Cosmos DB Data
+        run: |
+          echo "🔍 Validating Cosmos DB data..."
+          pwsh -File scripts/Validate-CosmosData.ps1 \
+            -ClientName "${{ github.event.inputs.client_name }}" \
+            -Environment "main"
+          echo "✅ Data validation completed"
+
+      - name: Get Deployment Summary
+        run: |
+          echo "📊 Deployment Summary:"
+          echo "   🏢 Client: ${{ github.event.inputs.client_name }}"
+          echo "   🌍 Environment: main"
+          echo "   📍 Location: ${{ env.DEFAULT_LOCATION }}"
+          echo "   🆔 Subscription: ${{ env.AZURE_SUBSCRIPTION_ID }}"
+          echo "   📅 Deployed at: $(date)"
+          echo "   🔄 Force Deploy: ${{ github.event.inputs.force_deploy }}"
+          
+          # Get resource group info
+          rg_name="rg-witag-${{ github.event.inputs.client_name }}-main"
+          echo "   📦 Resource Group: $rg_name"
+          
+          # List created resources
+          echo "🔗 Created Resources:"
+          az resource list --resource-group $rg_name --output table || true
