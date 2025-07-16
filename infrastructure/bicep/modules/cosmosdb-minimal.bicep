@@ -83,4 +83,4 @@ output accountName string = cosmosAccount.name
 output databaseName string = cosmosDatabase.name
 output connectionString string = cosmosAccount.listConnectionStrings().connectionStrings[0].connectionString
 output endpoint string = cosmosAccount.properties.documentEndpoint
-output primaryKey string = cosmosAccount.listKeys().primaryMasterKey 
+output primaryKey string = cosmosAccount.listKeys().primaryMasterKey

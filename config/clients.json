@@ -62,7 +62,7 @@
           "resourceGroup": "rg-witag-jarandes-testing",
           "location": "East US",
           "cosmosDb": {
-            "accountName": "cosmos-witag-jarandes-testing", 
+            "accountName": "cosmos-witag-jarandes-testing-2025", 
             "databaseName": "witag-db",
             "collections": [
               {
@@ -84,7 +84,7 @@
           "resourceGroup": "rg-witag-jarandes-main",
           "location": "East US", 
           "cosmosDb": {
-            "accountName": "cosmos-witag-jarandes-main",
+            "accountName": "cosmos-witag-jarandes-main-2025",
             "databaseName": "witag-db",
             "collections": [
               {

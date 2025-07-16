@@ -1,0 +1,254 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.36.177.2456",
+      "templateHash": "6204568103427930472"
+    }
+  },
+  "parameters": {
+    "testAccountName": {
+      "type": "string",
+      "defaultValue": "cosmos-test-elite-main-2025"
+    },
+    "testDatabaseName": {
+      "type": "string",
+      "defaultValue": "witag-db"
+    },
+    "testLocation": {
+      "type": "string",
+      "defaultValue": "East US"
+    },
+    "testClientName": {
+      "type": "string",
+      "defaultValue": "elite"
+    },
+    "testEnvironmentName": {
+      "type": "string",
+      "defaultValue": "main"
+    },
+    "testCollections": {
+      "type": "array",
+      "defaultValue": [
+        {
+          "name": "usuarios",
+          "partitionKey": "/id"
+        },
+        {
+          "name": "animales",
+          "partitionKey": "/id"
+        }
+      ]
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "test-cosmosdb",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "accountName": {
+            "value": "[parameters('testAccountName')]"
+          },
+          "databaseName": {
+            "value": "[parameters('testDatabaseName')]"
+          },
+          "location": {
+            "value": "[parameters('testLocation')]"
+          },
+          "clientName": {
+            "value": "[parameters('testClientName')]"
+          },
+          "environmentName": {
+            "value": "[parameters('testEnvironmentName')]"
+          },
+          "collections": {
+            "value": "[parameters('testCollections')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.36.177.2456",
+              "templateHash": "8717054524982802320"
+            }
+          },
+          "parameters": {
+            "accountName": {
+              "type": "string",
+              "metadata": {
+                "description": "Cosmos DB account name"
+              }
+            },
+            "databaseName": {
+              "type": "string",
+              "metadata": {
+                "description": "Database name"
+              }
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Location for the Cosmos DB account"
+              }
+            },
+            "clientName": {
+              "type": "string",
+              "metadata": {
+                "description": "Client name"
+              }
+            },
+            "environmentName": {
+              "type": "string",
+              "metadata": {
+                "description": "Environment name"
+              }
+            },
+            "collections": {
+              "type": "array",
+              "metadata": {
+                "description": "Collections configuration"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.DocumentDB/databaseAccounts",
+              "apiVersion": "2023-04-15",
+              "name": "[parameters('accountName')]",
+              "location": "[parameters('location')]",
+              "kind": "GlobalDocumentDB",
+              "properties": {
+                "consistencyPolicy": {
+                  "defaultConsistencyLevel": "Session"
+                },
+                "locations": [
+                  {
+                    "locationName": "[parameters('location')]",
+                    "failoverPriority": 0,
+                    "isZoneRedundant": false
+                  }
+                ],
+                "databaseAccountOfferType": "Standard",
+                "enableAutomaticFailover": false,
+                "enableMultipleWriteLocations": false,
+                "capabilities": [
+                  {
+                    "name": "EnableServerless"
+                  }
+                ],
+                "publicNetworkAccess": "Enabled",
+                "networkAclBypass": "None",
+                "disableLocalAuth": false,
+                "enableAnalyticalStorage": false,
+                "enableFreeTier": false
+              },
+              "tags": {
+                "environment": "[parameters('environmentName')]",
+                "client": "[parameters('clientName')]",
+                "solution": "witag",
+                "managedBy": "bicep"
+              }
+            },
+            {
+              "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases",
+              "apiVersion": "2023-04-15",
+              "name": "[format('{0}/{1}', parameters('accountName'), parameters('databaseName'))]",
+              "properties": {
+                "resource": {
+                  "id": "[parameters('databaseName')]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('accountName'))]"
+              ]
+            },
+            {
+              "copy": {
+                "name": "cosmosContainers",
+                "count": "[length(parameters('collections'))]"
+              },
+              "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers",
+              "apiVersion": "2023-04-15",
+              "name": "[format('{0}/{1}/{2}', parameters('accountName'), parameters('databaseName'), parameters('collections')[copyIndex()].name)]",
+              "properties": {
+                "resource": {
+                  "id": "[parameters('collections')[copyIndex()].name]",
+                  "partitionKey": {
+                    "paths": [
+                      "[parameters('collections')[copyIndex()].partitionKey]"
+                    ],
+                    "kind": "Hash"
+                  },
+                  "indexingPolicy": {
+                    "indexingMode": "consistent",
+                    "automatic": true,
+                    "includedPaths": [
+                      {
+                        "path": "/*"
+                      }
+                    ],
+                    "excludedPaths": [
+                      {
+                        "path": "/\"_etag\"/?"
+                      }
+                    ]
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases', parameters('accountName'), parameters('databaseName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "accountName": {
+              "type": "string",
+              "value": "[parameters('accountName')]"
+            },
+            "databaseName": {
+              "type": "string",
+              "value": "[parameters('databaseName')]"
+            },
+            "connectionString": {
+              "type": "string",
+              "value": "[listConnectionStrings(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('accountName')), '2023-04-15').connectionStrings[0].connectionString]"
+            },
+            "endpoint": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('accountName')), '2023-04-15').documentEndpoint]"
+            },
+            "primaryKey": {
+              "type": "string",
+              "value": "[listKeys(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('accountName')), '2023-04-15').primaryMasterKey]"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "testAccountName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'test-cosmosdb'), '2022-09-01').outputs.accountName.value]"
+    },
+    "testDatabaseName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'test-cosmosdb'), '2022-09-01').outputs.databaseName.value]"
+    },
+    "testEndpoint": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'test-cosmosdb'), '2022-09-01').outputs.endpoint.value]"
+    }
+  }
+}
