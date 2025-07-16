@@ -107,57 +107,6 @@
           }
         }
       }
-    },
-    "ght": {
-      "displayName": "GHT Client",
-      "environments": {
-        "testing": {
-          "resourceGroup": "rg-witag-ght-testing",
-          "location": "Australia East",
-          "sqlServer": {
-            "serverName": "sql-witag-ght-testing-2025",
-            "databaseName": "witag-db",
-            "adminLogin": "sqladmin",
-            "tables": [
-              {
-                "name": "usuarios",
-                "schema": "dbo"
-              },
-              {
-                "name": "animales",
-                "schema": "dbo"
-              }
-            ]
-          },
-          "functions": {
-            "core": ["UsersFunction", "AnimalsFunction"],
-            "plugins": []
-          }
-        },
-        "main": {
-          "resourceGroup": "rg-witag-ght-main",
-          "location": "Australia East",
-          "sqlServer": {
-            "serverName": "sql-witag-ght-main-2025",
-            "databaseName": "witag-db",
-            "adminLogin": "sqladmin",
-            "tables": [
-              {
-                "name": "usuarios",
-                "schema": "dbo"
-              },
-              {
-                "name": "animales",
-                "schema": "dbo"
-              }
-            ]
-          },
-          "functions": {
-            "core": ["UsersFunction", "AnimalsFunction"],
-            "plugins": []
-          }
-        }
-      }
     }
   }
 }
