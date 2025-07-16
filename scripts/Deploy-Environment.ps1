@@ -39,7 +39,7 @@ param(
     [string]$SubscriptionId,
 
     [Parameter(Mandatory = $false)]
-    [string]$Location = "East US",
+    [string]$Location = "Australia East",
 
     [Parameter(Mandatory = $false)]
     [string]$ConfigFile = "config/clients.json"

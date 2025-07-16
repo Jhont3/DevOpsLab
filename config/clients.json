@@ -2,7 +2,7 @@
   "solution": {
     "name": "witag",
     "azureSubscription": "9e6685f2-01c5-41a0-a1c9-c1e287ae4bcd",
-    "defaultLocation": "East US",
+    "defaultLocation": "Australia East",
     "resourceGroupPrefix": "rg-witag"
   },
   "clients": {
@@ -11,7 +11,7 @@
       "environments": {
         "testing": {
           "resourceGroup": "rg-witag-elite-testing",
-          "location": "East US",
+          "location": "Australia East",
           "cosmosDb": {
             "accountName": "cosmos-witag-elite-testing-2025",
             "databaseName": "witag-db",
@@ -33,7 +33,7 @@
         },
         "main": {
           "resourceGroup": "rg-witag-elite-main", 
-          "location": "East US",
+          "location": "Australia East",
           "cosmosDb": {
             "accountName": "cosmos-witag-elite-main-2025",
             "databaseName": "witag-db",
@@ -60,7 +60,7 @@
       "environments": {
         "testing": {
           "resourceGroup": "rg-witag-jarandes-testing",
-          "location": "East US",
+          "location": "Australia East",
           "cosmosDb": {
             "accountName": "cosmos-witag-jarandes-testing-2025", 
             "databaseName": "witag-db",
@@ -82,7 +82,7 @@
         },
         "main": {
           "resourceGroup": "rg-witag-jarandes-main",
-          "location": "East US", 
+          "location": "Australia East", 
           "cosmosDb": {
             "accountName": "cosmos-witag-jarandes-main-2025",
             "databaseName": "witag-db",
