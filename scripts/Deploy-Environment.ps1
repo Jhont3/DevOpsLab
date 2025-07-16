@@ -173,7 +173,7 @@ function Deploy-ClientEnvironment {
             "--template-file", "infrastructure/bicep/main.bicep"
             "--parameters", "@$tempParamsFile"
         "--subscription", $SubscriptionId
-        "--only-show-errors"
+        "--verbose"
     )
     
     $result = & $deploymentCommand[0] $deploymentCommand[1..($deploymentCommand.Length - 1)]
@@ -187,6 +187,17 @@ function Deploy-ClientEnvironment {
     }
     
     if ($LASTEXITCODE -ne 0) {
+        Write-ColorOutput "Deployment failed. Getting detailed error information..." "Red"
+        
+        # Get deployment operations to see what specifically failed
+        try {
+            Write-ColorOutput "Deployment operations:" "Yellow"
+            az deployment sub operation list --name $deploymentName --subscription $SubscriptionId --query "[?properties.provisioningState=='Failed'].{Resource:properties.targetResource.resourceName, Type:properties.targetResource.resourceType, Error:properties.statusMessage}" --output table
+        }
+        catch {
+            Write-ColorOutput "Could not retrieve deployment operations" "Red"
+        }
+        
         throw "Bicep deployment failed with exit code: $LASTEXITCODE"
     }
     
