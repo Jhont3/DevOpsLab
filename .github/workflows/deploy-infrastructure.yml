@@ -157,7 +157,7 @@ jobs:
           
           echo "🗃️ Initializing database for ${{ matrix.client }} in $ENVIRONMENT environment..."
           
-          pwsh -File scripts/Initialize-Database.ps1 \
+          pwsh -File scripts/Initialize-CosmosData-CLI.ps1 \
             -ClientName "${{ matrix.client }}" \
             -Environment "$ENVIRONMENT" \
             -ConfigPath "config/clients.json"
