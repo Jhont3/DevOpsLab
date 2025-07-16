@@ -192,7 +192,7 @@ function Deploy-ClientEnvironment {
         # Get deployment operations to see what specifically failed
         try {
             Write-ColorOutput "Deployment operations:" "Yellow"
-            az deployment sub operation list --name $deploymentName --subscription $SubscriptionId --query "[?properties.provisioningState=='Failed'].{Resource:properties.targetResource.resourceName, Type:properties.targetResource.resourceType, Error:properties.statusMessage}" --output table
+            az deployment operation sub list --name $deploymentName --subscription $SubscriptionId --query "[?properties.provisioningState=='Failed'].{Resource:properties.targetResource.resourceName, Type:properties.targetResource.resourceType, Error:properties.statusMessage}" --output table
         }
         catch {
             Write-ColorOutput "Could not retrieve deployment operations" "Red"
