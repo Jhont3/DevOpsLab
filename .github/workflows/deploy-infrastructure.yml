@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main, testing ]
     paths:
-      - 'config/clients.json'
+      - 'config/clients-sqlserver.json'
       - 'infrastructure/**'
   workflow_dispatch:
     inputs:
@@ -134,7 +134,8 @@ jobs:
             -ClientName "${{ matrix.client }}" \
             -Environment "testing" \
             -SubscriptionId "${{ env.AZURE_SUBSCRIPTION_ID }}" \
-            -ConfigFile "config/clients-sqlserver.json"
+            -ConfigFile "config/clients-sqlserver.json" \
+            -SqlAdminPassword "${{ secrets.SQL_ADMIN_PASSWORD }}"
 
       - name: Deploy production environment
         if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'main' || github.event.inputs.environment == 'both'
@@ -143,7 +144,8 @@ jobs:
             -ClientName "${{ matrix.client }}" \
             -Environment "main" \
             -SubscriptionId "${{ env.AZURE_SUBSCRIPTION_ID }}" \
-            -ConfigFile "config/clients-sqlserver.json"
+            -ConfigFile "config/clients-sqlserver.json" \
+            -SqlAdminPassword "${{ secrets.SQL_ADMIN_PASSWORD }}"
 
       - name: Wait for resources to be ready
         if: github.ref == 'refs/heads/testing' || github.ref == 'refs/heads/main' || github.event.inputs.environment != ''
@@ -168,7 +170,8 @@ jobs:
           pwsh -File scripts/Validate-SqlDatabase.ps1 \
             -ClientName "${{ matrix.client }}" \
             -Environment "$ENVIRONMENT" \
-            -ConfigPath "config/clients-sqlserver.json"
+            -ConfigFile "config/clients-sqlserver.json" \
+            -SqlAdminPassword "${{ secrets.SQL_ADMIN_PASSWORD }}"
 
       - name: Verify SQL Server deployment
         run: |
