@@ -148,10 +148,10 @@ function Deploy-ClientEnvironment {
         }
         
         # Convert our parameters to ARM format
-        # Use the original $parametersObject instead of converting from JSON
-        foreach ($param in $parametersObject.PSObject.Properties) {
-            $armParametersObject.parameters[$param.Name] = @{
-                value = $param.Value
+        # Iterate through hashtable keys directly
+        foreach ($paramName in $parametersObject.Keys) {
+            $armParametersObject.parameters[$paramName] = @{
+                value = $parametersObject[$paramName]
             }
         }
         
