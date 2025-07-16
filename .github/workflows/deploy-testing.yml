@@ -31,18 +31,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Azure CLI
-        uses: azure/CLI@v1
-        with:
-          azcliversion: 2.53.0
-
       - name: Azure Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Install Bicep
-        run: az bicep install
+      - name: Verify Azure CLI and Install Bicep
+        run: |
+          echo "Azure CLI version:"
+          az version
+          echo "Installing Bicep extension..."
+          az bicep install
 
       - name: Validate Templates
         run: |

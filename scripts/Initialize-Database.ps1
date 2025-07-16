@@ -6,7 +6,16 @@ Inicializa las colecciones de CosmosDB con datos de prueba
 
 .DESCRIPTION
 Este script inicializa las colecciones 'usuarios' y 'animales' de CosmosDB 
-con los datos de prueba requeridos después del de    # Verificar autenticación con Azure usando Azure CLI
+con los datos de prueba requeridos después del de    # Veri    # Verificar autenticación con Azure usando Azure CLI
+    $accountInfo = az account show --output json 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Log "No hay contexto de Azure activo. Ejecutando autenticación..." "WARNING"
+        az login
+    }
+    else {
+        $account = $accountInfo | ConvertFrom-Json
+        Write-Log "Conectado a Azure con la cuenta: $($account.user.name)" "SUCCESS"
+    }enticación con Azure usando Azure CLI
     $accountInfo = az account show --output json 2>$null
     if ($LASTEXITCODE -ne 0) {
         Write-Log "No hay contexto de Azure activo. Ejecutando autenticación..." "WARNING"
@@ -194,11 +203,12 @@ function Initialize-DatabaseCollections {
     )
     
     try {
-        # Verificar que la cuenta de CosmosDB existe
-        $cosmosAccount = Get-AzCosmosDBAccount -ResourceGroupName $resourceGroup -Name $accountName
-        if (-not $cosmosAccount) {
+        # Verificar que la cuenta de CosmosDB existe usando Azure CLI
+        $cosmosAccountJson = az cosmosdb show --resource-group $resourceGroup --name $accountName --output json 2>$null
+        if ($LASTEXITCODE -ne 0) {
             throw "Cuenta de CosmosDB no encontrada: $accountName"
         }
+        $cosmosAccount = $cosmosAccountJson | ConvertFrom-Json
         
         Write-Log "Cuenta de CosmosDB encontrada: $accountName"
         

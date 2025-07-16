@@ -52,7 +52,7 @@ jobs:
         with:
           filters: |
             config:
-              - 'config/clients.json'
+              - 'config/clients-sqlserver.json'
             infrastructure:
               - 'infrastructure/**'
       
@@ -69,7 +69,7 @@ jobs:
             echo "clients=$clients_json" >> $GITHUB_OUTPUT
           else
             # Automatic trigger - deploy all clients
-            clients_json=$(cat config/clients.json | jq -c '.clients | keys')
+            clients_json=$(cat config/clients-sqlserver.json | jq -c '.clients | keys')
             echo "clients=$clients_json" >> $GITHUB_OUTPUT
           fi
 
@@ -110,34 +110,36 @@ jobs:
 
       - name: Validate Bicep template
         run: |
-          echo "✅ Validating Bicep template..."
+          echo "✅ Validating Bicep template for SQL Server..."
           
           # Use bicep build to validate syntax first (safer than az validate)
-          bicep build infrastructure/bicep/main.bicep --stdout > /dev/null
+          bicep build infrastructure/bicep/main-sqlserver.bicep --stdout > /dev/null
           
           # Also validate modules individually
           bicep build infrastructure/bicep/modules/appserviceplan.bicep --stdout > /dev/null
-          bicep build infrastructure/bicep/modules/cosmosdb.bicep --stdout > /dev/null
+          bicep build infrastructure/bicep/modules/sqlserver.bicep --stdout > /dev/null
           bicep build infrastructure/bicep/modules/functionapp.bicep --stdout > /dev/null
           bicep build infrastructure/bicep/modules/storage.bicep --stdout > /dev/null
           
-          echo "✅ Bicep syntax validation completed"
+          echo "✅ SQL Server Bicep syntax validation completed"
 
       - name: Deploy testing environment
         if: github.ref == 'refs/heads/testing' || github.event.inputs.environment == 'testing' || github.event.inputs.environment == 'both'
         run: |
-          pwsh -File scripts/Deploy-Environment.ps1 \
+          pwsh -File scripts/Deploy-SqlServer-Environment.ps1 \
             -ClientName "${{ matrix.client }}" \
             -Environment "testing" \
-            -SubscriptionId "${{ env.AZURE_SUBSCRIPTION_ID }}"
+            -SubscriptionId "${{ env.AZURE_SUBSCRIPTION_ID }}" \
+            -ConfigFile "config/clients-sqlserver.json"
 
       - name: Deploy production environment
         if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'main' || github.event.inputs.environment == 'both'
         run: |
-          pwsh -File scripts/Deploy-Environment.ps1 \
+          pwsh -File scripts/Deploy-SqlServer-Environment.ps1 \
             -ClientName "${{ matrix.client }}" \
             -Environment "main" \
-            -SubscriptionId "${{ env.AZURE_SUBSCRIPTION_ID }}"
+            -SubscriptionId "${{ env.AZURE_SUBSCRIPTION_ID }}" \
+            -ConfigFile "config/clients-sqlserver.json"
 
       - name: Wait for resources to be ready
         if: github.ref == 'refs/heads/testing' || github.ref == 'refs/heads/main' || github.event.inputs.environment != ''
@@ -145,7 +147,7 @@ jobs:
           echo "⏳ Waiting for resources to be fully provisioned..."
           sleep 30
 
-      - name: Initialize database with sample data
+      - name: Initialize SQL Server database with sample data
         if: github.ref == 'refs/heads/testing' || github.ref == 'refs/heads/main' || github.event.inputs.environment != ''
         run: |
           # Determine environment based on branch or input
@@ -155,16 +157,18 @@ jobs:
             ENVIRONMENT="main"
           fi
           
-          echo "🗃️ Initializing database for ${{ matrix.client }} in $ENVIRONMENT environment..."
+          echo "🗃️ Initializing SQL Server database for ${{ matrix.client }} in $ENVIRONMENT environment..."
           
-          pwsh -File scripts/Initialize-CosmosData-CLI.ps1 \
+          # Note: SQL Server initialization is handled by Deploy-SqlServer-Environment.ps1
+          # But we can run validation separately if needed
+          pwsh -File scripts/Validate-SqlDatabase.ps1 \
             -ClientName "${{ matrix.client }}" \
             -Environment "$ENVIRONMENT" \
-            -ConfigPath "config/clients.json"
+            -ConfigPath "config/clients-sqlserver.json"
 
-      - name: Verify deployment
+      - name: Verify SQL Server deployment
         run: |
-          echo "🔍 Verifying deployment for client: ${{ matrix.client }}"
+          echo "🔍 Verifying SQL Server deployment for client: ${{ matrix.client }}"
           
           # Determine environment
           if [ "${{ github.ref }}" = "refs/heads/testing" ] || [ "${{ github.event.inputs.environment }}" = "testing" ]; then
@@ -175,13 +179,15 @@ jobs:
           
           echo "Checking $ENVIRONMENT environment..."
           
-          # Get resource group from config
-          rg_name=$(cat config/clients.json | jq -r ".clients.${{ matrix.client }}.environments.$ENVIRONMENT.resourceGroup")
-          cosmos_name=$(cat config/clients.json | jq -r ".clients.${{ matrix.client }}.environments.$ENVIRONMENT.cosmosDb.accountName")
+          # Get resource group from SQL Server config
+          rg_name=$(cat config/clients-sqlserver.json | jq -r ".clients.${{ matrix.client }}.environments.$ENVIRONMENT.resourceGroup")
+          sql_server_name=$(cat config/clients-sqlserver.json | jq -r ".clients.${{ matrix.client }}.environments.$ENVIRONMENT.sqlServer.serverName")
+          sql_database_name=$(cat config/clients-sqlserver.json | jq -r ".clients.${{ matrix.client }}.environments.$ENVIRONMENT.sqlServer.databaseName")
           
           echo "📋 Expected resources:"
           echo "   - Resource Group: $rg_name"
-          echo "   - Cosmos DB: $cosmos_name"
+          echo "   - SQL Server: $sql_server_name"
+          echo "   - SQL Database: $sql_database_name"
           
           # Check if resource group exists
           if az group show --name "$rg_name" --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}" > /dev/null 2>&1; then
@@ -191,15 +197,18 @@ jobs:
             echo "📦 Resources created:"
             az resource list --resource-group "$rg_name" --query "[].{Name:name, Type:type}" --output table
             
-            # Check Cosmos DB specifically
-            if az cosmosdb show --name "$cosmos_name" --resource-group "$rg_name" --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}" > /dev/null 2>&1; then
-              echo "✅ Cosmos DB $cosmos_name is accessible"
+            # Check SQL Server specifically
+            if az sql server show --name "$sql_server_name" --resource-group "$rg_name" --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}" > /dev/null 2>&1; then
+              echo "✅ SQL Server $sql_server_name is accessible"
               
-              # Check collections
-              echo "📊 Cosmos DB collections:"
-              az cosmosdb sql container list --account-name "$cosmos_name" --database-name "witag-db" --resource-group "$rg_name" --query "[].id" --output table 2>/dev/null || echo "   Collections will be available shortly..."
+              # Check database
+              if az sql db show --server "$sql_server_name" --name "$sql_database_name" --resource-group "$rg_name" --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}" > /dev/null 2>&1; then
+                echo "✅ SQL Database $sql_database_name is accessible"
+              else
+                echo "⚠️  SQL Database $sql_database_name not yet fully available"
+              fi
             else
-              echo "⚠️  Cosmos DB $cosmos_name not yet fully available"
+              echo "⚠️  SQL Server $sql_server_name not yet fully available"
             fi
           else
             echo "❌ Resource group $rg_name does not exist"

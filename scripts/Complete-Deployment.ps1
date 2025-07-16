@@ -123,10 +123,10 @@ if (-not $SkipInitialization) {
     Write-ColorOutput "`n⏳ Waiting 30 seconds for Cosmos DB to be fully ready..." "Yellow"
     Start-Sleep -Seconds 30
     
-    $initSuccess = Invoke-ScriptStep -StepName "Data Initialization" -ScriptPath "scripts/Initialize-CosmosData-CLI.ps1" -Arguments @(
+    $initSuccess = Invoke-ScriptStep -StepName "Data Initialization" -ScriptPath "scripts/Initialize-CosmosData.ps1" -Arguments @(
         "-ClientName", $ClientName
         "-Environment", $Environment
-        "-ConfigPath", $ConfigFile
+        "-ConfigFile", $ConfigFile
     )
     
     if (-not $initSuccess) {

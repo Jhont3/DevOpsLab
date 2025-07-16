@@ -33,30 +33,31 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Azure CLI
-        uses: azure/CLI@v1
-        with:
-          azcliversion: 2.53.0
+      - name: Verify Azure CLI version
+        run: |
+          echo "Current Azure CLI version:"
+          az version
+          echo "Note: Using pre-installed Azure CLI from runner"
 
       - name: Azure Login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Install Bicep
+      - name: Install Azure CLI Bicep extension
         run: az bicep install
 
-      - name: Validate Main Template
+      - name: Validate Main SQL Server Template
         run: |
-          echo "🔍 Validating main Bicep template..."
-          az bicep build --file infrastructure/bicep/main.bicep
-          echo "✅ Main template validation passed"
+          echo "🔍 Validating main SQL Server Bicep template..."
+          az bicep build --file infrastructure/bicep/main-sqlserver.bicep
+          echo "✅ Main SQL Server template validation passed"
 
-      - name: Validate Cosmos DB Template
+      - name: Validate SQL Server Template
         run: |
-          echo "🔍 Validating Cosmos DB template..."
-          az bicep build --file infrastructure/bicep/modules/cosmosdb.bicep
-          echo "✅ Cosmos DB template validation passed"
+          echo "🔍 Validating SQL Server template..."
+          az bicep build --file infrastructure/bicep/modules/sqlserver.bicep
+          echo "✅ SQL Server template validation passed"
 
       - name: Validate Storage Template
         run: |
@@ -74,11 +75,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Azure CLI
-        uses: azure/CLI@v1
-        with:
-          azcliversion: 2.53.0
-
       - name: Azure Login
         uses: azure/login@v1
         with:
@@ -91,13 +87,13 @@ jobs:
 
       - name: Deploy Infrastructure
         run: |
-          echo "🚀 Starting deployment for elite-main..."
-          pwsh -File scripts/Deploy-Environment.ps1 \
+          echo "🚀 Starting SQL Server deployment for elite-main..."
+          pwsh -File scripts/Deploy-SqlServer-Environment.ps1 \
             -ClientName "elite" \
             -Environment "main" \
             -SubscriptionId "${{ env.AZURE_SUBSCRIPTION_ID }}" \
-            -Location "${{ env.DEFAULT_LOCATION }}"
-          echo "✅ Infrastructure deployment completed"
+            -ConfigFile "config/clients-sqlserver.json"
+          echo "✅ SQL Server infrastructure deployment completed"
 
       - name: Wait for Resources to be Ready
         run: |
@@ -105,21 +101,14 @@ jobs:
           sleep 60
           echo "✅ Wait completed"
 
-      - name: Initialize Cosmos DB Data
+      - name: Validate SQL Server Data
         run: |
-          echo "📋 Initializing Cosmos DB with default data..."
-          pwsh -File scripts/Initialize-CosmosData.ps1 \
+          echo "🔍 Validating SQL Server data..."
+          pwsh -File scripts/Validate-SqlDatabase.ps1 \
             -ClientName "elite" \
-            -Environment "main"
-          echo "✅ Data initialization completed"
-
-      - name: Validate Cosmos DB Data
-        run: |
-          echo "🔍 Validating Cosmos DB data..."
-          pwsh -File scripts/Validate-CosmosData.ps1 \
-            -ClientName "elite" \
-            -Environment "main"
-          echo "✅ Data validation completed"
+            -Environment "main" \
+            -ConfigPath "config/clients-sqlserver.json"
+          echo "✅ SQL Server data validation completed"
 
       - name: Get Deployment Summary
         run: |
@@ -148,11 +137,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Azure CLI
-        uses: azure/CLI@v1
-        with:
-          azcliversion: 2.53.0
-
       - name: Azure Login
         uses: azure/login@v1
         with:
@@ -165,13 +149,13 @@ jobs:
 
       - name: Deploy Infrastructure
         run: |
-          echo "🚀 Starting deployment for jarandes-main..."
-          pwsh -File scripts/Deploy-Environment.ps1 \
+          echo "🚀 Starting SQL Server deployment for jarandes-main..."
+          pwsh -File scripts/Deploy-SqlServer-Environment.ps1 \
             -ClientName "jarandes" \
             -Environment "main" \
             -SubscriptionId "${{ env.AZURE_SUBSCRIPTION_ID }}" \
-            -Location "${{ env.DEFAULT_LOCATION }}"
-          echo "✅ Infrastructure deployment completed"
+            -ConfigFile "config/clients-sqlserver.json"
+          echo "✅ SQL Server infrastructure deployment completed"
 
       - name: Wait for Resources to be Ready
         run: |
@@ -179,21 +163,14 @@ jobs:
           sleep 60
           echo "✅ Wait completed"
 
-      - name: Initialize Cosmos DB Data
+      - name: Validate SQL Server Data
         run: |
-          echo "📋 Initializing Cosmos DB with default data..."
-          pwsh -File scripts/Initialize-CosmosData.ps1 \
+          echo "🔍 Validating SQL Server data..."
+          pwsh -File scripts/Validate-SqlDatabase.ps1 \
             -ClientName "jarandes" \
-            -Environment "main"
-          echo "✅ Data initialization completed"
-
-      - name: Validate Cosmos DB Data
-        run: |
-          echo "🔍 Validating Cosmos DB data..."
-          pwsh -File scripts/Validate-CosmosData.ps1 \
-            -ClientName "jarandes" \
-            -Environment "main"
-          echo "✅ Data validation completed"
+            -Environment "main" \
+            -ConfigPath "config/clients-sqlserver.json"
+          echo "✅ SQL Server data validation completed"
 
       - name: Get Deployment Summary
         run: |
@@ -222,11 +199,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Azure CLI
-        uses: azure/CLI@v1
-        with:
-          azcliversion: 2.53.0
-
       - name: Azure Login
         uses: azure/login@v1
         with:
@@ -239,13 +211,13 @@ jobs:
 
       - name: Deploy Infrastructure
         run: |
-          echo "🚀 Starting manual deployment for ${{ github.event.inputs.client_name }}-main..."
-          pwsh -File scripts/Deploy-Environment.ps1 \
+          echo "🚀 Starting manual SQL Server deployment for ${{ github.event.inputs.client_name }}-main..."
+          pwsh -File scripts/Deploy-SqlServer-Environment.ps1 \
             -ClientName "${{ github.event.inputs.client_name }}" \
             -Environment "main" \
             -SubscriptionId "${{ env.AZURE_SUBSCRIPTION_ID }}" \
-            -Location "${{ env.DEFAULT_LOCATION }}"
-          echo "✅ Infrastructure deployment completed"
+            -ConfigFile "config/clients-sqlserver.json"
+          echo "✅ SQL Server infrastructure deployment completed"
 
       - name: Wait for Resources to be Ready
         run: |
@@ -253,21 +225,14 @@ jobs:
           sleep 60
           echo "✅ Wait completed"
 
-      - name: Initialize Cosmos DB Data
+      - name: Validate SQL Server Data
         run: |
-          echo "📋 Initializing Cosmos DB with default data..."
-          pwsh -File scripts/Initialize-CosmosData.ps1 \
+          echo "🔍 Validating SQL Server data..."
+          pwsh -File scripts/Validate-SqlDatabase.ps1 \
             -ClientName "${{ github.event.inputs.client_name }}" \
-            -Environment "main"
-          echo "✅ Data initialization completed"
-
-      - name: Validate Cosmos DB Data
-        run: |
-          echo "🔍 Validating Cosmos DB data..."
-          pwsh -File scripts/Validate-CosmosData.ps1 \
-            -ClientName "${{ github.event.inputs.client_name }}" \
-            -Environment "main"
-          echo "✅ Data validation completed"
+            -Environment "main" \
+            -ConfigPath "config/clients-sqlserver.json"
+          echo "✅ SQL Server data validation completed"
 
       - name: Get Deployment Summary
         run: |

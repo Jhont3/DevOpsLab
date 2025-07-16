@@ -1,0 +1,163 @@
+{
+  "solution": {
+    "name": "witag",
+    "azureSubscription": "9e6685f2-01c5-41a0-a1c9-c1e287ae4bcd",
+    "defaultLocation": "Australia East",
+    "resourceGroupPrefix": "rg-witag"
+  },
+  "clients": {
+    "elite": {
+      "displayName": "Elite Client",
+      "environments": {
+        "testing": {
+          "resourceGroup": "rg-witag-elite-testing",
+          "location": "Australia East",
+          "sqlServer": {
+            "serverName": "sql-witag-elite-testing-2025",
+            "databaseName": "witag-db",
+            "adminLogin": "sqladmin",
+            "tables": [
+              {
+                "name": "usuarios",
+                "schema": "dbo"
+              },
+              {
+                "name": "animales", 
+                "schema": "dbo"
+              }
+            ]
+          },
+          "functions": {
+            "core": ["UsersFunction", "AnimalsFunction"],
+            "plugins": []
+          }
+        },
+        "main": {
+          "resourceGroup": "rg-witag-elite-main", 
+          "location": "Australia East",
+          "sqlServer": {
+            "serverName": "sql-witag-elite-main-2025",
+            "databaseName": "witag-db",
+            "adminLogin": "sqladmin",
+            "tables": [
+              {
+                "name": "usuarios",
+                "schema": "dbo"
+              },
+              {
+                "name": "animales",
+                "schema": "dbo"
+              }
+            ]
+          },
+          "functions": {
+            "core": ["UsersFunction", "AnimalsFunction"],
+            "plugins": []
+          }
+        }
+      }
+    },
+    "jarandes": {
+      "displayName": "Jarandes Client",
+      "environments": {
+        "testing": {
+          "resourceGroup": "rg-witag-jarandes-testing",
+          "location": "Australia East",
+          "sqlServer": {
+            "serverName": "sql-witag-jarandes-testing-2025",
+            "databaseName": "witag-db",
+            "adminLogin": "sqladmin",
+            "tables": [
+              {
+                "name": "usuarios",
+                "schema": "dbo"
+              },
+              {
+                "name": "animales",
+                "schema": "dbo"
+              }
+            ]
+          },
+          "functions": {
+            "core": ["UsersFunction", "AnimalsFunction"],
+            "plugins": []
+          }
+        },
+        "main": {
+          "resourceGroup": "rg-witag-jarandes-main",
+          "location": "Australia East",
+          "sqlServer": {
+            "serverName": "sql-witag-jarandes-main-2025",
+            "databaseName": "witag-db",
+            "adminLogin": "sqladmin",
+            "tables": [
+              {
+                "name": "usuarios",
+                "schema": "dbo"
+              },
+              {
+                "name": "animales",
+                "schema": "dbo"
+              }
+            ]
+          },
+          "functions": {
+            "core": ["UsersFunction", "AnimalsFunction"],
+            "plugins": []
+          }
+        }
+      }
+    },
+    "ght": {
+      "displayName": "GHT Client",
+      "environments": {
+        "testing": {
+          "resourceGroup": "rg-witag-ght-testing",
+          "location": "Australia East",
+          "sqlServer": {
+            "serverName": "sql-witag-ght-testing-2025",
+            "databaseName": "witag-db",
+            "adminLogin": "sqladmin",
+            "tables": [
+              {
+                "name": "usuarios",
+                "schema": "dbo"
+              },
+              {
+                "name": "animales",
+                "schema": "dbo"
+              }
+            ]
+          },
+          "functions": {
+            "core": ["UsersFunction", "AnimalsFunction"],
+            "plugins": []
+          }
+        },
+        "main": {
+          "resourceGroup": "rg-witag-ght-main",
+          "location": "Australia East",
+          "sqlServer": {
+            "serverName": "sql-witag-ght-main-2025",
+            "databaseName": "witag-db",
+            "adminLogin": "sqladmin",
+            "tables": [
+              {
+                "name": "usuarios",
+                "schema": "dbo"
+              },
+              {
+                "name": "animales",
+                "schema": "dbo"
+              }
+            ]
+          },
+          "functions": {
+            "core": ["UsersFunction", "AnimalsFunction"],
+            "plugins": []
+          }
+        }
+      }
+    }
+  }
+}
