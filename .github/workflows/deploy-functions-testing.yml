@@ -1,0 +1,189 @@
+name: Deploy Functions to Testing
+
+on:
+  pull_request:
+    branches: [ testing ]
+    paths:
+      - 'UsersFunction/**'
+      - 'AnimalsFunction/**'
+      - 'PlugginsRandomFunctionOne/**'
+  push:
+    branches: [ testing ]
+    paths:
+      - 'UsersFunction/**'
+      - 'AnimalsFunction/**'
+      - 'PlugginsRandomFunctionOne/**'
+
+env:
+  AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      users-function: ${{ steps.changes.outputs.users-function }}
+      animals-function: ${{ steps.changes.outputs.animals-function }}
+      plugins-function: ${{ steps.changes.outputs.plugins-function }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            users-function:
+              - 'UsersFunction/**'
+            animals-function:
+              - 'AnimalsFunction/**'
+            plugins-function:
+              - 'PlugginsRandomFunctionOne/**'
+
+  deploy-functions:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.users-function == 'true' || needs.detect-changes.outputs.animals-function == 'true' || needs.detect-changes.outputs.plugins-function == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        function-config: [
+          { name: 'UsersFunction', path: 'UsersFunction', changed: '${{ needs.detect-changes.outputs.users-function }}' },
+          { name: 'AnimalsFunction', path: 'AnimalsFunction', changed: '${{ needs.detect-changes.outputs.animals-function }}' },
+          { name: 'PlugginsRandomFunctionOne', path: 'PlugginsRandomFunctionOne', changed: '${{ needs.detect-changes.outputs.plugins-function }}' }
+        ]
+    steps:
+      - name: Checkout code
+        if: matrix.function-config.changed == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        if: matrix.function-config.changed == 'true'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '6.0.x'
+
+      - name: Azure Login via OIDC
+        if: matrix.function-config.changed == 'true'
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build Function App
+        if: matrix.function-config.changed == 'true'
+        run: |
+          cd ${{ matrix.function-config.path }}/${{ matrix.function-config.path }}
+          echo "🔨 Building ${{ matrix.function-config.name }}..."
+          dotnet restore
+          dotnet build --configuration Release --no-restore
+          dotnet publish --configuration Release --output ./publish --no-build
+
+      - name: Create deployment package
+        if: matrix.function-config.changed == 'true'
+        run: |
+          cd ${{ matrix.function-config.path }}/${{ matrix.function-config.path }}/publish
+          zip -r ../../../${{ matrix.function-config.name }}-testing-package.zip .
+          echo "📦 Package created: ${{ matrix.function-config.name }}-testing-package.zip"
+
+      - name: Get testing environments for this function
+        if: matrix.function-config.changed == 'true'
+        id: get-environments
+        run: |
+          # Read configuration and extract testing environments that use this function
+          environments=$(cat config/clients-sqlserver.json | jq -r --arg func "${{ matrix.function-config.name }}" '
+            .clients | to_entries[] | 
+            select(.value.environments.testing.functions.core[]? == $func or 
+                   .value.environments.testing.functions.plugins[]? == $func) |
+            .key
+          ' | jq -R -s -c 'split("\n")[:-1]')
+          echo "environments=$environments" >> $GITHUB_OUTPUT
+          echo "🎯 Will deploy ${{ matrix.function-config.name }} to testing environments: $environments"
+
+      - name: Deploy to testing environments
+        if: matrix.function-config.changed == 'true'
+        run: |
+          environments='${{ steps.get-environments.outputs.environments }}'
+          
+          if [ "$environments" = "[]" ] || [ -z "$environments" ]; then
+            echo "⏭️  No testing environments found for ${{ matrix.function-config.name }}"
+            exit 0
+          fi
+          
+          for client in $(echo $environments | jq -r '.[]'); do
+            echo "🚀 Deploying ${{ matrix.function-config.name }} to $client-testing..."
+            
+            # Get function app name for this client
+            function_app_name="${{ matrix.function-config.name }}-${client}-testing"
+            resource_group="rg-witag-${client}-testing"
+            
+            echo "   📦 Function App: $function_app_name"
+            echo "   📋 Resource Group: $resource_group"
+            
+            # Deploy using Azure CLI
+            az functionapp deployment source config-zip \
+              --resource-group "$resource_group" \
+              --name "$function_app_name" \
+              --src "${{ matrix.function-config.name }}-testing-package.zip" \
+              --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}"
+            
+            if [ $? -eq 0 ]; then
+              echo "   ✅ Successfully deployed to $function_app_name"
+            else
+              echo "   ❌ Failed to deploy to $function_app_name"
+              exit 1
+            fi
+          done
+
+      - name: Verify deployments
+        if: matrix.function-config.changed == 'true'
+        run: |
+          environments='${{ steps.get-environments.outputs.environments }}'
+          
+          if [ "$environments" = "[]" ] || [ -z "$environments" ]; then
+            echo "⏭️  No testing environments to verify"
+            exit 0
+          fi
+          
+          for client in $(echo $environments | jq -r '.[]'); do
+            function_app_name="${{ matrix.function-config.name }}-${client}-testing"
+            resource_group="rg-witag-${client}-testing"
+            
+            echo "🔍 Verifying deployment for $function_app_name..."
+            
+            # Check if function app is running
+            status=$(az functionapp show \
+              --resource-group "$resource_group" \
+              --name "$function_app_name" \
+              --query "state" \
+              --output tsv \
+              --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}")
+            
+            if [ "$status" = "Running" ]; then
+              echo "   ✅ $function_app_name is running successfully"
+            else
+              echo "   ⚠️  $function_app_name status: $status"
+            fi
+          done
+
+  notify-completion:
+    needs: [detect-changes, deploy-functions]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify deployment status
+        run: |
+          if [ "${{ needs.deploy-functions.result }}" = "success" ]; then
+            echo "🎉 Testing functions deployment completed successfully!"
+          elif [ "${{ needs.deploy-functions.result }}" = "failure" ]; then
+            echo "❌ Testing functions deployment failed!"
+            exit 1
+          elif [ "${{ needs.deploy-functions.result }}" = "skipped" ]; then
+            echo "⏭️  No function changes detected, skipping deployment"
+          fi 

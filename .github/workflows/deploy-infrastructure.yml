@@ -84,6 +84,36 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set SQL Admin Password for client
+        id: sql-password
+        run: |
+          client="${{ matrix.client }}"
+          echo "🔐 Setting SQL Admin Password for client: $client"
+          
+          case "$client" in
+            "elite")
+              echo "password=${{ secrets.SQL_ADMIN_PASSWORD_ELITE }}" >> $GITHUB_OUTPUT
+              ;;
+            "jarandes")
+              echo "password=${{ secrets.SQL_ADMIN_PASSWORD_JARANDES }}" >> $GITHUB_OUTPUT
+              ;;
+            "ght")
+              echo "password=${{ secrets.SQL_ADMIN_PASSWORD_GHT }}" >> $GITHUB_OUTPUT
+              ;;
+            # Add more clients here as needed
+            # "newclient")
+            #   echo "password=${{ secrets.SQL_ADMIN_PASSWORD_NEWCLIENT }}" >> $GITHUB_OUTPUT
+            #   ;;
+            *)
+              echo "❌ ERROR: No SQL password configured for client: $client"
+              echo "Available clients: elite, jarandes, ght"
+              echo "Please add the secret SQL_ADMIN_PASSWORD_${client^^} to GitHub secrets"
+              exit 1
+              ;;
+          esac
+          
+          echo "✅ SQL password set for client: $client"
+
       - name: Install PowerShell and SqlServer module
         run: |
           # Install PowerShell
@@ -135,7 +165,7 @@ jobs:
             -Environment "testing" \
             -SubscriptionId "${{ env.AZURE_SUBSCRIPTION_ID }}" \
             -ConfigFile "config/clients-sqlserver.json" \
-            -SqlAdminPassword "${{ secrets.SQL_ADMIN_PASSWORD }}"
+            -SqlAdminPassword "${{ steps.sql-password.outputs.password }}"
 
       - name: Deploy production environment
         if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'main' || github.event.inputs.environment == 'both'
@@ -145,7 +175,7 @@ jobs:
             -Environment "main" \
             -SubscriptionId "${{ env.AZURE_SUBSCRIPTION_ID }}" \
             -ConfigFile "config/clients-sqlserver.json" \
-            -SqlAdminPassword "${{ secrets.SQL_ADMIN_PASSWORD }}"
+            -SqlAdminPassword "${{ steps.sql-password.outputs.password }}"
 
       - name: Wait for resources to be ready
         if: github.ref == 'refs/heads/testing' || github.ref == 'refs/heads/main' || github.event.inputs.environment != ''
@@ -171,7 +201,7 @@ jobs:
             -ClientName "${{ matrix.client }}" \
             -Environment "$ENVIRONMENT" \
             -ConfigFile "config/clients-sqlserver.json" \
-            -SqlAdminPassword "${{ secrets.SQL_ADMIN_PASSWORD }}"
+            -SqlAdminPassword "${{ steps.sql-password.outputs.password }}"
 
       - name: Verify SQL Server deployment
         run: |
