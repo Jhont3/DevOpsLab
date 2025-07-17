@@ -99,7 +99,15 @@ function Invoke-SqlCommand {
     )
     
     try {
-        $connectionString = "Server=$ServerName;Database=$DatabaseName;User ID=$Username;Password=$Password;Encrypt=true;Connection Timeout=30;"
+        # Use SqlConnectionStringBuilder to safely construct connection string
+        $connectionStringBuilder = New-Object System.Data.SqlClient.SqlConnectionStringBuilder
+        $connectionStringBuilder.DataSource = $ServerName
+        $connectionStringBuilder.InitialCatalog = $DatabaseName
+        $connectionStringBuilder.UserID = $Username
+        $connectionStringBuilder.Password = $Password
+        $connectionStringBuilder.Encrypt = $true
+        $connectionStringBuilder.ConnectTimeout = 30
+        $connectionString = $connectionStringBuilder.ConnectionString
         
         # Use SqlServer module if available, otherwise use Azure CLI
         if (Get-Module -ListAvailable -Name SqlServer) {
