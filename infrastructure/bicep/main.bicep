@@ -133,4 +133,4 @@ output pluginFunctionApps array = [for (functionName, i) in pluginFunctions: {
   name: functionName
   functionAppName: pluginFunctionApps[i].outputs.functionAppName
   defaultHostName: pluginFunctionApps[i].outputs.defaultHostName
-}] 
+}]
