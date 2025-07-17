@@ -101,8 +101,8 @@ function Invoke-SqlCommand {
     try {
         # Use SqlConnectionStringBuilder to safely construct connection string
         $connectionStringBuilder = New-Object System.Data.SqlClient.SqlConnectionStringBuilder
-        $connectionStringBuilder.DataSource = $ServerName
-        $connectionStringBuilder.InitialCatalog = $DatabaseName
+        $connectionStringBuilder.Server = $ServerName
+        $connectionStringBuilder.Database = $DatabaseName
         $connectionStringBuilder.UserID = $Username
         $connectionStringBuilder.Password = $Password
         $connectionStringBuilder.Encrypt = $true
