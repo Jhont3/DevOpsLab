@@ -1,6 +1,6 @@
 targetScope = 'subscription'
 
-// Updated to trigger workflow with SqlConnectionStringBuilder fix
+// Updated to trigger workflow with simplified connection string fix
 @description('Client name (e.g., elite, jarandes, ght)')
 param clientName string
 
